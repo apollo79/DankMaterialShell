@@ -15,6 +15,7 @@ MouseArea {
             return;
         wheel.accepted = true;
         root.player.adjustVolume((wheel.angleDelta.y > 0 ? 1 : -1) * AudioService.wheelVolumeStep);
-        root.button.showTooltip();
+        if (typeof root.button.showTooltip === "function")
+            root.button.showTooltip();
     }
 }

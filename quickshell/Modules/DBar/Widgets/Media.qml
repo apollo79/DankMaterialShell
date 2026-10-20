@@ -46,7 +46,7 @@ BasePill {
         const controller = LyricsService.controller;
         if (!controller.enabled || !controller.synced)
             return false;
-        const parts = controller.lines[controller.activeIndex]?.parts ?? [];
+        const parts = controller.lines[controller.playingIndex]?.parts ?? [];
         return parts.some(part => part.x.trim() !== "");
     }
     readonly property int maxTextWidth: {

@@ -12,13 +12,14 @@ RowLayout {
 
     required property var player
     required property var presentation
+    property real buttonSize: Theme.buttonHeightM
 
     readonly property var focusTargets: [shuffleButton, previousButton, playButton, nextButton, repeatButton]
     readonly property bool hasControls: !!presentation
     readonly property var pressSpring: Theme.springPreset("fast", Theme.expressiveDurations.expressiveFastSpatial)
 
     spacing: Theme.spacingS
-    implicitHeight: Theme.buttonHeightM
+    implicitHeight: root.buttonSize
     height: implicitHeight
     LayoutMirroring.enabled: false
     LayoutMirroring.childrenInherit: true
@@ -41,7 +42,7 @@ RowLayout {
         size: "m"
         weight: DashMetrics.mediaPlayWidthRatio + (Number(shuffleButton.visible) + Number(repeatButton.visible)) * DashMetrics.mediaPlayWidthStep
         variant: "filled"
-        iconSize: Theme.iconSizeLarge
+        iconSize: Math.round(root.buttonSize * Theme.iconSizeLarge / Theme.buttonHeightM)
         containerColor: MediaAccentService.accentContainer
         contentColor: MediaAccentService.onAccentContainer
     }
@@ -69,7 +70,8 @@ RowLayout {
         Layout.minimumWidth: Theme.iconSizeMedium + Theme.spacingXS * 2
         Layout.alignment: Qt.AlignVCenter
         round: false
-        buttonSize: Theme.buttonHeightM
+        buttonSize: root.buttonSize
+        iconSize: Math.round(root.buttonSize * Theme.iconSize / Theme.buttonHeightM)
         radius: Theme.buttonRadius(width, height, buttonSize, pressed, false)
         variant: "tonal"
         containerColor: checked ? MediaAccentService.accentContainer : MediaAccentService.accentSecondaryContainer

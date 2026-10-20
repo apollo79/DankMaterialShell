@@ -1,0 +1,15 @@
+- [x] clicking on lyrics line to jump doesn't work correctly anymore, the statelayers aren't where the actual lines are anymore, sometimes there is none and clicking one doesn't take one to the position of the line underneath the it
+- [x] auto-follow playback on clicking a lyrics line
+- [x] lyrics should become same height and color during scrolling
+- [x] scrolling manually goes the wrong direction (for me)
+- [x] the elapsed time isn't updated and stays at 0:00
+- [x] no instrumental indicator at the start of the song although it also is longer than 5 seconds without text
+- [x] when the next active line moves up, it should increase the distance to the next line a bit, just like the distance to the previous line decreases, and then move to the standard again so that everything looks cohesive
+- [ ] sometimes after the line change animation finishes, something moves / relayouts. Maybe because the text gets smaller and then more words fit in a line or something?
+- [???] the dimming of the color after the line becomes inactive isn't smooth but I couldn't fix it
+- [ ] when using the waveprogress bar to go to a position in the song, the lyrics lines go to the new position, but they kinda overlap and a lot of lines go through the view very fast
+- [ ] the position in a line doesn't seem to be calculated on opening the media player, so the fill is only applied once the song starts. Also, the animation position of the instrumental indicator is not calculated so it might move to a different position once "play" is clicked while in an instrumental part
+- [ ] the fill for the instrumental indicator is not smooth but seems to go in steps
+- [ ] the lyrics seem to desync from the actual song sometimes. I don't know if this could be a new bug or if it is the fault of the player api on linux
+- [ ] lines have more padding at the bottom than at the top but it should be equal so the statelayer looks nicer
+- [ ] active secondary lines that are part of a block that is already moved up can still be active but get dimmed (the highlight is still there but it is also dimmed)

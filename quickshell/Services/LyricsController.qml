@@ -34,6 +34,8 @@ QtObject {
     property string attributionUrl: ""
     property string attributionText: ""
     property int activeIndex: -1
+    // The line that is being sung, which can trail activeIndex while the next one moves on.
+    property int playingIndex: -1
     property real wordTime: -1
     property real wordEnd: -1
     property int wordRevision: 0
@@ -460,24 +462,32 @@ QtObject {
         const at = currentTime();
         sampleTime = at;
         const nextIndex = indexFor(at, lines);
+        // The next line moves on a little early, so it is centred before it is sung.
+        const upcoming = lines[nextIndex + 1];
+        const activeIndexNow = upcoming && upcoming.t - at <= DashMetrics.lyricsLineLeadIn ? nextIndex + 1 : nextIndex;
         const focused = [];
         for (let i = 0; i <= nextIndex; i++) {
-            if (i === nextIndex || lines[i].parts.some(part => part.t <= at && at < part.e))
+            if (lines[i].parts.some(part => part.t <= at && at < part.e))
                 focused.push(i);
         }
         if (focused.join() !== focusedGroups.join())
             focusedGroups = focused;
-        activeIndex = nextIndex;
-        const parts = lines[activeIndex]?.parts ?? [];
-        const lead = parts.find(part => !part.background && part.t <= at);
-        const timing = wordTiming(lead ?? lines[activeIndex]?.parts[0], at);
+        playingIndex = nextIndex;
+        activeIndex = activeIndexNow;
+        // The word timing follows the line that is being sung, not the one that moved on early.
+        const sung = lines[nextIndex]?.parts ?? [];
+        const lead = sung.find(part => !part.background && part.t <= at);
+        const timing = wordTiming(lead ?? sung[0], at);
+        if (wordTime !== timing.t) {
+            wordRevision++;
+        }
         wordTime = timing.t;
         wordEnd = timing.e;
         const next = cueTimes[indexFor(at, cueTimes) + 1]?.t ?? Infinity;
-        wordRevision++;
         if (!playing || rate <= 0 || !Number.isFinite(next))
             return;
-        tick.interval = Math.max(1, Math.min(2147483647, (next - at) * 1000 / rate));
+        // The tick has to keep up with the clock, or the lines change too late to be centred.
+        tick.interval = Math.max(1, Math.min(2147483647, (next - at) * 1000 / rate, DashMetrics.mediaLyricsTickInterval));
         tick.start();
     }
 
@@ -490,9 +500,12 @@ QtObject {
                 t: -1,
                 e: -1
             };
+        // A word without its own end runs until the next one starts.
+        const next = cues[index + 1]?.t ?? Infinity;
+        const end = word.e > word.t ? word.e : next;
         return {
             t: word.t,
-            e: Math.min(part.e, cues[index + 1]?.t ?? Infinity, word.e)
+            e: Math.min(part.e, end)
         };
     }
 

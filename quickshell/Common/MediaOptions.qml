@@ -15,7 +15,8 @@ Singleton {
             animatedArt: false,
             lyrics: true,
             smoothLyrics: true,
-            deviceName: true
+            deviceName: true,
+            controlsContainer: false
         })
 
     readonly property string defaultPlayerStyle: "bento"
@@ -31,7 +32,7 @@ Singleton {
     ]
 
     readonly property var titleFontDefaults: ({
-            bento: "Notable",
+            bento: "ui",
             material: "ui"
         })
 
@@ -41,6 +42,7 @@ Singleton {
     readonly property bool albumArtBackdrop: stored.albumArtBackdrop ?? defaults.albumArtBackdrop
     readonly property bool albumArtAccent: stored.albumArtAccent ?? defaults.albumArtAccent
     readonly property bool animatedArt: stored.animatedArt ?? defaults.animatedArt
+    readonly property bool controlsContainer: stored.controlsContainer ?? defaults.controlsContainer
 
     readonly property var builtinLyricsProviders: [
         {

@@ -4,142 +4,291 @@ import QtQuick
 import qs.Common
 import qs.DCommon.Widgets
 import qs.Modules.DDash
-import "../../../Common/Format.js" as Format
 
+// A lyric line is drawn word by word, like the mockup: every word sits on a dim base text with a
+// bright copy on top, clipped to the part of the word that has been sung already. A word that is
+// synced below the word level keeps its parts together, and the parts fill in turn.
 Item {
     id: root
 
-    LayoutMirroring.enabled: false
-    LayoutMirroring.childrenInherit: true
-
     required property var controller
     required property var part
-    required property color accent
+    required property real now
+
     property bool synced: true
-    property bool following: true
-    property int distance: 0
     property bool animationsEnabled: true
-    property bool smoothHighlight: true
-    property bool inViewport: false
+    property bool sweep: true
     property real leadFontSize: Theme.fontSizeXLarge
+    // The clock of the sung line. It only runs while this line is the one being sung.
+    property real clock: 0
 
-    readonly property bool current: synced && controller.sampleTime >= part.t && controller.sampleTime < part.e
-    readonly property bool highlighted: synced && controller.sampleTime >= part.t && (current || distance === 0)
-    readonly property bool timedWords: synced && part.w.length > 0
-    readonly property bool emphasize: synced && following
-    readonly property bool lead: current || (distance === 0 && !part.background)
-    readonly property int reach: lead ? 0 : Math.max(1, distance)
-    readonly property real textScale: reach === 0 || !emphasize ? 1 : reach === 1 ? (Theme.fontSizeMedium + Theme.fontSizeLarge) / (Theme.fontSizeXLarge * 2) : Theme.fontSizeSmall / Theme.fontSizeXLarge
-    readonly property int wordRevision: highlighted ? controller.wordRevision : -1
-    readonly property bool sweep: smoothHighlight && animationsEnabled
-    readonly property bool animateWords: current && timedWords && sweep && controller.enabled && controller.playing && visible && inViewport
+    readonly property bool timedWords: synced && !!part.w && part.w.length > 0
+    readonly property real sampleTime: controller.sampleTime
+    readonly property var words: root.timedWords ? root.buildWords() : []
+    readonly property var rows: root.layoutRows(root.words, Math.max(0, root.width - Theme.spacingM * 2))
+    readonly property real lastEnd: {
+        let end = 0;
+        for (const word of root.words)
+            end = Math.max(end, word.e);
+        return end;
+    }
+    readonly property real partEnd: root.timedWords ? root.lastEnd : (part.e ?? 0)
+    // The line keeps its accent for a moment after its last word, then it dims into the colour of a
+    // line that was never sung.
+    readonly property real sinceEnd: root.sampleTime - root.partEnd
+    readonly property bool started: root.synced && root.sampleTime >= part.t
+    readonly property bool holding: root.started && root.sinceEnd >= 0 && root.sinceEnd < DashMetrics.lyricsLineFillHold / 1000
+    readonly property bool singing: root.started && (root.sinceEnd < 0 || root.holding)
+    // The highlight of the line: it comes up as fast as it can when the line starts, it holds the
+    // accent for a moment after the last word and then it goes straight to the colour of a line
+    // that was never sung. It follows the clock, like the fill of the instrumental break does.
+    readonly property real highlight: {
+        const at = root.now;
+        const start = part.t;
+        const end = root.partEnd;
+        if (at <= start)
+            return 0;
+        if (at < end) {
+            // The rise never reaches past the end of the line, so the curve stays continuous where
+            // the line hands over to the fade out.
+            const rise = Math.max(0.001, Math.min(DashMetrics.lyricsLineFadeInDuration / 1000, end - start));
+            return Math.max(0, Math.min(1, (at - start) / rise));
+        }
+        const hold = DashMetrics.lyricsLineFillHold / 1000;
+        const fade = DashMetrics.lyricsLineFadeDuration / 1000;
+        if (at < end + hold + fade)
+            return Math.max(0, Math.min(1, 1 - (at - end - hold) / fade));
+        return 0;
+    }
+    // The sung words take the tertiary, the words that are still to come a hint of it. The mockup
+    // mixes the accent with transparency, so the two are told apart by the strength, and a line
+    // that is done fades into the same rest the lines that were never sung have.
+    readonly property color accentRest: Theme.withAlpha(Theme.tertiary, 0.35)
+    readonly property color restColor: root.accentRest
+    readonly property color fillColor: Theme.withAlpha(Theme.tertiary, root.highlight)
     readonly property int alignment: part.side === 0 ? Text.AlignHCenter : (part.side < 0) !== I18n.isRtl ? Text.AlignLeft : Text.AlignRight
-    property real wordStart: -1
-    property real wordProgress: 1
+    readonly property real fontSize: part.background ? Math.round(root.leadFontSize * Theme.fontSizeLarge / Theme.fontSizeXLarge) : root.leadFontSize
+    readonly property int fontWeight: root.synced && !part.background ? Theme.fontWeightBold : Theme.fontWeightMedium
+    // A line without spaces holds one cue per word, so nothing is added between them.
+    readonly property bool spaced: root.timedWords && (part.w ?? []).some(cue => /\s/.test(cue.x))
 
-    implicitHeight: Math.ceil(line.implicitHeight * textScale) + Theme.spacingS
-    opacity: reach === 0 || !emphasize ? 1 : reach === 1 ? DashMetrics.lyricsNearOpacity : DashMetrics.lyricsFarOpacity
-    onWordRevisionChanged: updateWordProgress()
-    onAnimateWordsChanged: updateWordProgress()
-    onSweepChanged: updateWordProgress()
+    implicitHeight: rowsContainer.implicitHeight + Theme.spacingS
 
-    function highlightedText(activeOnly) {
-        return part.w.map(word => {
-            const active = highlighted && word.t === wordStart;
-            const text = Format.escapeHtml(word.x).replace(/\n/g, "<br>");
-            if (activeOnly)
-                return active ? text : '<font color="transparent">' + text + '</font>';
-            const sung = highlighted && word.t < wordStart;
-            const color = sung || (active && !sweep) ? accent : active ? "transparent" : Theme.onSurfaceVariant;
-            return '<font color="' + color + '">' + text + '</font>';
-        }).join("");
-    }
-
-    function updateWordProgress() {
-        wordMotion.stop();
-        if (!highlighted || !timedWords) {
-            wordStart = -1;
-            wordProgress = 1;
-            return;
-        }
-        const at = controller.currentTime();
-        const timing = controller.wordTiming(part, at);
-        wordStart = timing.t;
-        wordProgress = sweep && timing.e > timing.t ? Math.max(0, Math.min(1, (at - timing.t) / (timing.e - timing.t))) : 1;
-        if (!animateWords || controller.rate <= 0 || timing.e <= at || wordProgress >= 1)
-            return;
-        wordMotion.from = wordProgress;
-        wordMotion.duration = Math.ceil(Math.min(2147483647, (timing.e - at) * 1000 / controller.rate));
-        wordMotion.start();
-    }
-
-    Behavior on opacity {
-        enabled: root.animationsEnabled
-        NumberAnimation {
-            duration: Theme.expressiveDurations.expressiveEffects
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-        }
-    }
-
-    NumberAnimation {
-        id: wordMotion
+    // The clock only runs while the line is sung, so the other lines do not follow the frames.
+    Binding {
         target: root
-        property: "wordProgress"
-        to: 1
+        property: "clock"
+        value: root.now
+        when: root.singing
+    }
+
+    // The words of a line in the order they are written. A cue that carries on where the last one
+    // stopped belongs to the same word, so a word that is synced below the word level stays whole.
+    // A word without its own end runs until the next cue starts.
+    function buildWords() {
+        const source = part.w ?? [];
+        const spaced = source.some(cue => /\s/.test(cue.x));
+        const order = source.map((word, index) => index).sort((a, b) => source[a].t - source[b].t);
+        const limit = Number.isFinite(part.e) ? part.e : Infinity;
+        const ends = new Map();
+        for (let i = 0; i < source.length; i++) {
+            const cue = source[i];
+            const place = order.indexOf(i);
+            const next = place >= 0 && place + 1 < order.length ? source[order[place + 1]] : null;
+            const end = cue.e > cue.t ? cue.e : (next ? next.t : limit);
+            ends.set(i, Math.min(limit, end) > cue.t ? Math.min(limit, end) : cue.t);
+        }
+        const words = [];
+        let current = null;
+        for (let i = 0; i < source.length; i++) {
+            const cue = source[i];
+            if (!cue.x.length)
+                continue;
+            const text = cue.x;
+            const startsWord = !current || !spaced || /^\s/.test(text) || /\s$/.test(current.text);
+            if (startsWord) {
+                current = {
+                    "text": "",
+                    "parts": [],
+                    "t": cue.t,
+                    "e": ends.get(i)
+                };
+                words.push(current);
+            }
+            const part = {
+                "text": text,
+                "t": cue.t,
+                "e": ends.get(i)
+            };
+            current.parts.push(part);
+            current.text += text;
+            current.e = Math.max(current.e, part.e);
+        }
+        for (const word of words) {
+            word.text = word.text.trim();
+            for (const part of word.parts)
+                part.text = part.text.trim();
+        }
+        return words;
+    }
+
+    // The words are packed into rows that fit the width of the track.
+    function layoutRows(words, maxWidth) {
+        const rows = [];
+        let row = [];
+        let width = 0;
+        for (const word of words) {
+            const wordWidth = metrics.advanceWidth(word.text);
+            if (row.length && width + root.spaceWidth + wordWidth > maxWidth) {
+                rows.push(row);
+                row = [];
+                width = 0;
+            }
+            width += (row.length ? root.spaceWidth : 0) + wordWidth;
+            row.push(word);
+        }
+        if (row.length)
+            rows.push(row);
+        return rows;
+    }
+
+    StyledText {
+        id: fontSource
+        visible: false
+        font.pixelSize: root.fontSize
+        font.weight: root.fontWeight
+        text: " "
+    }
+
+    FontMetrics {
+        id: metrics
+        font: fontSource.font
+    }
+
+    readonly property real spaceWidth: root.spaced ? metrics.advanceWidth(" ") : 0
+
+    // One word: its parts sit next to each other, and every part fills on its own.
+    component LyricWord: Item {
+        id: word
+
+        required property var parts
+        required property color rest
+        required property color fill
+        required property real pixelSize
+        required property int weight
+        required property bool singing
+        required property bool started
+        required property bool sweep
+        required property real clock
+
+        implicitWidth: partsRow.implicitWidth
+        implicitHeight: partsRow.implicitHeight
+        width: implicitWidth
+        height: implicitHeight
+
+        Row {
+            id: partsRow
+            spacing: 0
+
+            Repeater {
+                model: word.parts
+
+                delegate: Item {
+                    id: part
+                    required property var modelData
+
+                    width: base.implicitWidth
+                    height: base.implicitHeight
+
+                    readonly property real progress: {
+                        if (!word.started)
+                            return 0;
+                        const span = Math.max(0.001, part.modelData.e - part.modelData.t);
+                        const done = word.sweep ? (word.clock - part.modelData.t) / span : (word.clock >= part.modelData.t ? 1 : 0);
+                        return Math.max(0, Math.min(1, done));
+                    }
+
+                    StyledText {
+                        id: base
+                        text: part.modelData.text
+                        color: word.rest
+                        font.pixelSize: word.pixelSize
+                        font.weight: word.weight
+                        wrapMode: Text.NoWrap
+                        elide: Text.ElideNone
+                    }
+
+                    // The bright copy is clipped to the sung part of the word.
+                    Item {
+                        width: part.width * part.progress
+                        height: part.height
+                        clip: true
+
+                        StyledText {
+                            text: part.modelData.text
+                            color: word.fill
+                            font: base.font
+                            wrapMode: Text.NoWrap
+                            elide: Text.ElideNone
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Item {
-        y: (root.implicitHeight - height) / 2
+        id: rowsContainer
         width: parent.width
-        height: Math.ceil(line.implicitHeight * root.textScale)
+        implicitHeight: rowsColumn.implicitHeight
 
-        StyledText {
-            id: line
-            anchors.centerIn: parent
+        Column {
+            id: rowsColumn
             width: parent.width
-            text: root.timedWords ? root.highlightedText(false) : root.part.x || "\u00a0"
-            textFormat: root.timedWords ? Text.StyledText : Text.PlainText
-            Accessible.name: root.part.x
-            Accessible.description: root.part.voiceName || ""
-            color: root.highlighted ? root.accent : Theme.onSurfaceVariant
-            Behavior on color {
-                enabled: root.sweep
-                ColorAnimation {
-                    duration: Theme.expressiveDurations.expressiveEffects
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                }
-            }
-            font.pixelSize: root.part.background || !root.emphasize ? Math.round(root.leadFontSize * Theme.fontSizeLarge / Theme.fontSizeXLarge) : root.leadFontSize
-            font.weight: root.synced && !root.part.background ? Theme.fontWeightBold : Theme.fontWeightMedium
-            scale: root.textScale
-            Behavior on scale {
-                enabled: root.animationsEnabled
-                NumberAnimation {
-                    duration: Theme.expressiveDurations.expressiveDefaultSpatial
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.expressiveCurves.expressiveDefaultSpatial
-                }
-            }
-            transformOrigin: root.alignment === Text.AlignHCenter ? Item.Center : root.alignment === Text.AlignLeft ? Item.Left : Item.Right
-            lineHeight: DashMetrics.lyricsLineHeight
-            horizontalAlignment: root.alignment
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            elide: Text.ElideNone
+            spacing: Theme.spacingXXS
 
-            StyledText {
-                anchors.fill: parent
-                visible: root.highlighted && root.timedWords && root.sweep
-                text: root.timedWords ? root.highlightedText(true) : ""
-                textFormat: Text.StyledText
-                Accessible.ignored: true
-                font: line.font
-                color: Qt.tint(Theme.onSurfaceVariant, Theme.withAlpha(root.accent, root.wordProgress))
-                lineHeight: line.lineHeight
-                horizontalAlignment: line.horizontalAlignment
-                wrapMode: line.wrapMode
-                elide: Text.ElideNone
+            Repeater {
+                model: root.rows
+
+                delegate: Item {
+                    id: rowItem
+                    required property var modelData
+
+                    width: rowsColumn.width
+                    height: wordRow.implicitHeight
+
+                    Row {
+                        id: wordRow
+                        height: rowItem.height
+                        spacing: root.spaceWidth
+                        x: {
+                            const rowWidth = wordRow.implicitWidth;
+                            if (root.alignment === Text.AlignLeft)
+                                return 0;
+                            if (root.alignment === Text.AlignRight)
+                                return rowItem.width - rowWidth;
+                            return (rowItem.width - rowWidth) / 2;
+                        }
+
+                        Repeater {
+                            model: rowItem.modelData
+
+                            delegate: LyricWord {
+                                required property var modelData
+
+                                parts: modelData.parts
+                                rest: root.restColor
+                                fill: root.fillColor
+                                pixelSize: root.fontSize
+                                weight: root.fontWeight
+                                singing: root.singing
+                                started: root.started
+                                sweep: root.sweep
+                                clock: root.clock
+                            }
+                        }
+                    }
+                }
             }
         }
     }

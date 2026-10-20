@@ -21,7 +21,6 @@ Item {
     readonly property bool lyricsEnabled: (options?.lyrics ?? MediaOptions.defaults.lyrics) && DMSService.capabilities.includes("lyrics")
     readonly property bool smoothLyrics: options?.smoothLyrics ?? MediaOptions.defaults.smoothLyrics
     property bool lyricsOpen: false
-    property bool playerPaneOpen: true
     property Item lyricsFocusTarget: null
     property Item lyricsOpener: null
     readonly property var presentation: mediaPresentation.current
@@ -68,7 +67,6 @@ Item {
     onPlayerStyleChanged: {
         panel = "";
         lyricsOpen = false;
-        playerPaneOpen = true;
         isSeeking = false;
         restoreLyrics();
     }
@@ -79,7 +77,6 @@ Item {
             return;
         }
         lyricsOpen = false;
-        playerPaneOpen = true;
     }
 
     onIdleChanged: {
@@ -148,7 +145,6 @@ Item {
         }
         panel = "";
         lyricsOpen = false;
-        playerPaneOpen = true;
     }
 
     function cycleFocus(backwards) {

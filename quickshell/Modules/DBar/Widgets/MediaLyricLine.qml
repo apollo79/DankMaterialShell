@@ -39,14 +39,14 @@ Item {
     }
 
     function place() {
-        const parts = visible ? (controller.lines[controller.activeIndex]?.parts ?? []) : [];
+        const parts = visible ? (controller.lines[controller.playingIndex]?.parts ?? []) : [];
         const at = controller.currentTime();
         const next = parts.find(candidate => !candidate.background && at >= candidate.t && at < candidate.e) ?? parts.find(candidate => !candidate.background) ?? parts[0] ?? null;
         if (!next) {
             clearLine();
             return;
         }
-        const key = controller.activeIndex + "/" + next.t + "/" + next.voice;
+        const key = controller.playingIndex + "/" + next.t + "/" + next.voice;
         const paged = key + "/" + width + "/" + fontKey;
         if (paged !== pagedKey) {
             pagedKey = paged;

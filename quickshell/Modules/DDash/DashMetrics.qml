@@ -198,7 +198,19 @@ Singleton {
     readonly property real mediaInnerRadius: Math.max(Theme.cornerRadiusXS, surfaceRadius - mediaCardMargin - Theme.layerOutlineWidth)
     readonly property real mediaArtSoftRadiusRatio: 0.3
     readonly property real mediaArtPlaceholderIcon: Theme.buttonHeightM
+    // The bento media tab splits its card between the artwork stage and the deck.
+    readonly property real mediaArtColumnRatio: 5 / 11
+    readonly property real mediaDeckColumnRatio: 6 / 11
     readonly property real mediaSeekbarHeight: 22
+    // The wave bar has to fit the handle, which stretches into a tall pill while seeking.
+    readonly property real mediaWaveSeekbarHeight: 30
+    readonly property real mediaTransportMaxHeight: 70
+    readonly property int mediaTitleFontWeight: 700
+    // The mockup sets the title in the rounded, graded instance of the interface font.
+    readonly property var mediaTitleFontAxes: ({
+            "ROND": 100,
+            "GRAD": 100
+        })
     readonly property real mediaPlayWidthRatio: 1.5
     readonly property real mediaPlayWidthStep: 0.75
     readonly property real mediaTransportPressScale: 1.2
@@ -215,13 +227,35 @@ Singleton {
     readonly property int mediaLyricsLoadingDelay: 300
     readonly property real mediaLyricsPositionTolerance: 0.05
     readonly property int mediaLyricsPositionProbeInterval: 5000
+    readonly property int mediaLyricsTickInterval: 30
     readonly property real mediaLyricsPositionProbeDrift: 1.5
     readonly property real mediaLyricsPositionProbeThreshold: 1
-    readonly property real lyricsNearOpacity: 0.55
-    readonly property real lyricsFarOpacity: 0.3
-    readonly property real lyricsLineHeight: 1.25
     readonly property real lyricsLeadHeightDivisor: 12
     readonly property real lyricsLeadWidthDivisor: 11
+    // The line moves on a moment before it is sung, so the hand over to the next line reads the
+    // same as in the mockup. The curve covers most of its distance in the first part of the
+    // move, so a long lead in would move the line while the previous one is still sung.
+    // Seconds, like the lyric timestamps it is compared against.
+    readonly property real lyricsLineLeadIn: lyricsTrackMoveDuration / 1000 * 0.3
+    readonly property int lyricsLineScaleDuration: 700
+    readonly property int lyricsLineFadeDuration: 600
+    // A line brightens in no time, it only takes a moment to go back to the rest.
+    readonly property int lyricsLineFadeInDuration: 200
+    // The line that is not sung sits smaller, like in the mockup.
+    readonly property real lyricsLineInactiveScale: 0.8
+    // A line that has been sung keeps its accent for a moment before it turns into the rest.
+    readonly property int lyricsLineFillHold: 300
+    readonly property int lyricsRevealDuration: 450
+    // The push of the lyrics track: the line that is up next leads, the lines above it follow.
+    readonly property int lyricsTrackMoveDuration: 850
+    readonly property int lyricsTrackPushStep: 50
+    readonly property int lyricsTrackMaxPush: 5
+    readonly property int lyricsBreakGap: 5
+    // The break gap is in seconds, like the lyric timestamps it is compared against.
+    // cubic-bezier(.22,.9,.2,1) moves the track, the CSS ease fades it. The curve takes the
+    // points of the spline, so the CSS pair plus the end point.
+    readonly property var lyricsTrackCurve: [0.22, 0.9, 0.2, 1.0, 1.0, 1.0]
+    readonly property var lyricsTrackEaseCurve: [0.25, 0.1, 0.25, 1.0, 1.0, 1.0]
     readonly property int wheelNotch: 120
 
     readonly property int dailyVisibleCount: 7
