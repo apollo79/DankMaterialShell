@@ -238,19 +238,23 @@ Singleton {
     // Seconds, like the lyric timestamps it is compared against.
     readonly property real lyricsLineLeadIn: lyricsTrackMoveDuration / 1000 * 0.3
     readonly property int lyricsLineScaleDuration: 700
-    readonly property int lyricsLineFadeDuration: 600
-    // A line brightens in no time, it only takes a moment to go back to the rest.
-    readonly property int lyricsLineFadeInDuration: 200
-    // The line that is not sung sits smaller, like in the mockup.
-    readonly property real lyricsLineInactiveScale: 0.8
     // A line that has been sung keeps its accent for a moment before it turns into the rest.
     readonly property int lyricsLineFillHold: 300
+    readonly property int lyricsLineFadeDuration: 300
+    // A line brightens in no time, it only takes a moment to go back to the rest.
+    readonly property int lyricsLineFadeInDuration: 200
+    // The line that is not sung sits smaller and fainter, like in the mockup.
+    readonly property real lyricsLineInactiveScale: 0.8
+    readonly property real lyricsLineInactiveAlpha: 0.4
     readonly property int lyricsRevealDuration: 450
     // The push of the lyrics track: the line that is up next leads, the lines above it follow.
     readonly property int lyricsTrackMoveDuration: 850
     readonly property int lyricsTrackPushStep: 50
     readonly property int lyricsTrackMaxPush: 5
     readonly property int lyricsBreakGap: 5
+    // The track fades out over the top and bottom fifth, capped so the fade stays short on tall panes.
+    readonly property real lyricsEdgeFadeRatio: 0.2
+    readonly property real lyricsEdgeFadeMax: Theme.spacingXL * 2
     // The break gap is in seconds, like the lyric timestamps it is compared against.
     // cubic-bezier(.22,.9,.2,1) moves the track, the CSS ease fades it. The curve takes the
     // points of the spline, so the CSS pair plus the end point.

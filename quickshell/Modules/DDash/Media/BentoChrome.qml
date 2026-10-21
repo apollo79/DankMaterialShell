@@ -44,9 +44,11 @@ MediaChromeBase {
         }
         y: root.compact ? 0 : (parent.height - height) / 2
         width: root.artworkSize
-        height: width
+        // The lyrics fill the same height as the deck on the right; the square artwork stays square.
+        height: !root.compact && artView.lyricsVisible ? deckArea.height : width
 
         MediaArtView {
+            id: artView
             anchors.fill: parent
             player: root.player
             expressive: true

@@ -5,11 +5,28 @@
 - [x] the elapsed time isn't updated and stays at 0:00
 - [x] no instrumental indicator at the start of the song although it also is longer than 5 seconds without text
 - [x] when the next active line moves up, it should increase the distance to the next line a bit, just like the distance to the previous line decreases, and then move to the standard again so that everything looks cohesive
-- [ ] sometimes after the line change animation finishes, something moves / relayouts. Maybe because the text gets smaller and then more words fit in a line or something?
-- [???] the dimming of the color after the line becomes inactive isn't smooth but I couldn't fix it
-- [ ] when using the waveprogress bar to go to a position in the song, the lyrics lines go to the new position, but they kinda overlap and a lot of lines go through the view very fast
-- [ ] the position in a line doesn't seem to be calculated on opening the media player, so the fill is only applied once the song starts. Also, the animation position of the instrumental indicator is not calculated so it might move to a different position once "play" is clicked while in an instrumental part
-- [ ] the fill for the instrumental indicator is not smooth but seems to go in steps
+- [x] sometimes after the line change animation finishes, something moves / relayouts. Maybe because the text gets smaller and then more words fit in a line or something? Probably not since this doesn't happen again if I go back and let it play again, so it is a weird bug. The line on top of the new active one moves a bit down for a split second and then up again it seems.
+- [x] the dimming of the color after the line becomes inactive isn't smooth but I couldn't fix it
+- [x] the position in a line doesn't seem to be calculated on opening the media player, so the fill is only applied once the song starts. Also, the animation position of the instrumental indicator is not calculated so it might move to a different position once "play" is clicked while in an instrumental part
+- [x] the fill for the instrumental indicator is not smooth but seems to go in steps
 - [ ] the lyrics seem to desync from the actual song sometimes. I don't know if this could be a new bug or if it is the fault of the player api on linux
-- [ ] lines have more padding at the bottom than at the top but it should be equal so the statelayer looks nicer
-- [ ] active secondary lines that are part of a block that is already moved up can still be active but get dimmed (the highlight is still there but it is also dimmed)
+- [x] lines have more padding at the bottom than at the top but it should be equal so the statelayer looks nicer
+- [x] active secondary lines that are part of a block that is already moved up can still be active but get dimmed (the highlight is still there but it is also dimmed)
+- [x] the active line can go outside of the container at the sides and then it clips and a part isn't visible anymore
+- [x] the instrumental indicator should go back into the default position when it becomes inactive
+- [x] the fill of the instrumental indicators is now as if the space inbetween would also get filled (nothing changes in the time that the space would get filled)
+- [x] instrumental indicators have no statelayer, you can't go to them
+- [x] you can scroll so far to the top that nothing is visible anymore, but you should only be able to scroll so far that the first line is in the center of the viewport (the starting position). same thing for the bottom.
+- [x] when the user has scrolled and the playback isn't followed, the lyrics shouldn't scroll by themselves anymore to not mix the auto-scrolling with the user's scrolling
+- [x] make the "Follow playback button" float over the lyrics surface. Also make it use the same color scheme as the prev / next buttons
+- [x] the lyrics area could become higher, the controls area currently has more height so there would be more space available for the lyrics
+- [x] different instrumental indicator or a springier animation?
+- [x] when starting to scroll, the lines change size immediately which introduces visual jarring since the scroll position changes with that
+- [ ] sometimes, a click on one of the lines moves the focus to the previous line and then a second click moves it to the clicked line
+- [ ] when scrolling manually and then clicking a line to jump to, the animation looks very bad (it kinda jumps, looks almost immediate). Instead, it should center the line using the smooth line change animation.
+- [ ] when clicking the "Follow playback" button, the view jumps to the position but it should again animate smoothly to into
+- [x???] gradually fade out the color of the lines at the edges instead of having hard edges. Couldn't get it to work with MultiEffect so it is a shader now
+- [ ] clicking the lyrics button shows the lyrics but it lags and is not a clean transition animation
+- [x] the instrumental indicator getting filled is now unsmooth again, probably because of the different speeds depending on rotation or so
+- [ ] disable all animations when the user uses reduced motion
+- [ ] performance optimize cause rn, opening the music tab takes a long time and is lagging strongly for a bit and some of the animations not smooth

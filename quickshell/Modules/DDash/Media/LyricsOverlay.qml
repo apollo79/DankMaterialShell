@@ -194,7 +194,8 @@ FocusScope {
 
         Item {
             id: attribution
-            anchors.bottom: followButton.top
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Theme.spacingM
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width - Theme.spacingM * 2
             height: credit.implicitHeight
@@ -224,19 +225,19 @@ FocusScope {
             id: followButton
             objectName: "followPlayback"
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.spacingM
+            // Floats over the bottom of the lyrics, above the attribution line.
+            anchors.bottom: attribution.top
+            anchors.bottomMargin: Theme.spacingL
             buttonHeight: Theme.buttonHeightXS
             maximumWidth: Math.max(0, parent.width - Theme.spacingM * 2)
             wrapText: true
-            height: root.showFollow ? implicitHeight : 0
             visible: root.showFollow
             text: root.compact ? "" : I18n.tr("Follow playback", "Resume automatic scrolling of lyrics")
             Accessible.name: I18n.tr("Follow playback", "Resume automatic scrolling of lyrics")
             tooltipText: root.compact ? Accessible.name : ""
             iconName: "my_location"
-            backgroundColor: Theme.chipSurface
-            textColor: MediaAccentService.readableAccent
+            backgroundColor: MediaAccentService.accentSecondaryContainer
+            textColor: MediaAccentService.onAccentSecondaryContainer
             onClicked: {
                 root.forceActiveFocus(Qt.OtherFocusReason);
                 root.followCurrent();

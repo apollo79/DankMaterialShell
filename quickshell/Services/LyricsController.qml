@@ -374,14 +374,18 @@ QtObject {
         state = "ready";
     }
 
-    function seekToLine(index) {
-        if (!synced || duration <= 0 || !player?.canSeek)
+    function seekToTime(time) {
+        if (!canSeekLines || !Number.isFinite(time))
             return false;
+        player.position = Math.max(0.1, Math.min(time, duration * 0.99));
+        return true;
+    }
+
+    function seekToLine(index) {
         const line = lines[index];
         if (!line || !Number.isFinite(line.t))
             return false;
-        player.position = Math.max(0.1, Math.min(line.t, duration * 0.99));
-        return true;
+        return seekToTime(line.t);
     }
 
     function currentTime() {

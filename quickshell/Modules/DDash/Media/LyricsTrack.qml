@@ -20,6 +20,9 @@ Item {
     property bool following: true
     property bool ready: false
 
+    readonly property real edgeFadeLength: Math.min(root.height * DashMetrics.lyricsEdgeFadeRatio, DashMetrics.lyricsEdgeFadeMax)
+    readonly property real edgeFadeStop: root.height > 0 ? root.edgeFadeLength / root.height : 0
+
     // A line was clicked, the panel follows the playback again.
     signal activated()
 
@@ -31,6 +34,7 @@ Item {
     property bool userScrolling: false
 
     readonly property bool synced: controller.synced
+    readonly property bool playing: controller.playing
     readonly property int activeIndex: controller.activeIndex
     readonly property real sampleTime: controller.sampleTime
     // The clock the word fill runs on. It follows the frames while the track is on screen.
@@ -85,9 +89,9 @@ Item {
         return found;
     }
 
-    // The item the column is moved to. It runs ahead of the sung line, so the line is already in
+    // The item the column would move to. It runs ahead of the sung line, so the line is already in
     // the centre when it is sung. A break that plays right now is centred on its own.
-    readonly property int centredItemIndex: {
+    readonly property int followedItemIndex: {
         for (let i = 0; i < root.items.length; i++) {
             const item = root.items[i];
             if (item.kind === "break" && root.sampleTime >= item.start && root.sampleTime < item.end)
@@ -102,6 +106,20 @@ Item {
         return root.activeItemIndex;
     }
 
+    // Browsing holds the item that was centred when the user scrolled, so playback changes do not
+    // move the track under the user. It follows again once the panel resumes playback following.
+    property int heldItemIndex: -1
+    readonly property int centredItemIndex: root.following ? root.followedItemIndex : (root.heldItemIndex >= 0 ? root.heldItemIndex : root.followedItemIndex)
+    // The item the last push was for. A target change for the same item is a reflow, not a line
+    // change, and must not start another animation after the first one has settled.
+    property int pushedItemIndex: -1
+
+    onFollowingChanged: {
+        root.heldItemIndex = root.following ? -1 : root.followedItemIndex;
+        if (!root.following)
+            root.stopPush();
+    }
+
     // Where every line has to move to, so the centred line rests in the vertical centre.
     readonly property real target: {
         repeater.count;
@@ -109,6 +127,24 @@ Item {
         if (!item)
             return 0;
         return root.height / 2 - (item.y + item.height / 2);
+    }
+
+    // How far the column has to move to put an item in the vertical centre. Using the current
+    // shift instead of the target keeps the bound right while the push is still animating.
+    function offsetForItem(index) {
+        const item = repeater.itemAt(index);
+        return item ? root.height / 2 - (item.y + item.height / 2 + item.shift) : 0;
+    }
+
+    function clampOffset(value) {
+        const first = root.offsetForItem(0);
+        const last = root.offsetForItem(repeater.count - 1);
+        return Math.max(Math.min(first, last), Math.min(Math.max(first, last), value));
+    }
+
+    function stopPush() {
+        for (let i = 0; i < repeater.count; i++)
+            repeater.itemAt(i)?.stopPush();
     }
 
     // The push is driven from here, so every line knows its delay before the move starts.
@@ -125,10 +161,37 @@ Item {
         }
     }
 
-    onTargetChanged: root.pushItems(root.target, root.ready && root.animationsEnabled)
+    onTargetChanged: {
+        const animate = root.following && root.ready && root.animationsEnabled && root.pushedItemIndex !== root.centredItemIndex;
+        root.pushedItemIndex = root.centredItemIndex;
+        root.pushItems(root.target, animate);
+    }
     onReadyChanged: {
-        if (root.ready)
+        if (root.ready) {
+            root.pushedItemIndex = root.centredItemIndex;
             root.pushItems(root.target, false);
+            if (root.synced)
+                root.now = root.controller.currentTime();
+        }
+    }
+    // New content or a new lead size changes the line heights, so recenter without a push.
+    onItemsChanged: root.snap()
+    onSyncedChanged: {
+        root.snap();
+        if (root.synced)
+            root.now = root.controller.currentTime();
+    }
+    onLeadFontSizeChanged: root.snap()
+
+    // Opening the panel while paused must still show the sung part. The frame clock only runs
+    // during playback, so seed it from the sampled position as well.
+    onSampleTimeChanged: {
+        if (!root.playing)
+            root.now = root.sampleTime;
+    }
+    onPlayingChanged: {
+        if (root.playing)
+            root.now = root.controller.currentTime();
     }
 
     function resume() {
@@ -138,17 +201,15 @@ Item {
     function scrollBy(amount) {
         userScrolling = true;
         wheelRelease.restart();
-        userOffset -= amount;
+        userOffset = root.clampOffset(userOffset - amount);
     }
 
     function scrollToStart() {
-        const item = repeater.itemAt(0);
-        userOffset = item ? root.height / 2 - (item.y + item.height / 2) - root.target : 0;
+        userOffset = root.offsetForItem(0);
     }
 
     function scrollToEnd() {
-        const item = repeater.itemAt(repeater.count - 1);
-        userOffset = item ? root.height / 2 - (item.y + item.height / 2) - root.target : 0;
+        userOffset = root.offsetForItem(repeater.count - 1);
     }
 
     function snap() {
@@ -177,7 +238,7 @@ Item {
     }
 
     FrameAnimation {
-        running: root.visible && root.synced && root.controller.enabled && root.controller.playing
+        running: root.visible && root.synced && root.controller.enabled && root.playing
         onTriggered: root.now = root.controller.currentTime()
     }
 
@@ -186,6 +247,12 @@ Item {
         objectName: "lyricsViewport"
         anchors.fill: parent
         clip: true
+        // MultiEffect thresholds a gradient into a hard edge, so the ramp is computed in a shader.
+        layer.enabled: true
+        layer.effect: ShaderEffect {
+            property real edgeFade: root.edgeFadeStop
+            fragmentShader: Qt.resolvedUrl("../../../Shaders/qsb/lyrics_edge.frag.qsb")
+        }
 
         Column {
             id: column
@@ -237,7 +304,7 @@ Item {
         onPositionChanged: mouse => {
             if (!pressed)
                 return;
-            root.userOffset += mouse.y - pressY;
+            root.userOffset = root.clampOffset(root.userOffset + mouse.y - pressY);
             pressY = mouse.y;
         }
     }

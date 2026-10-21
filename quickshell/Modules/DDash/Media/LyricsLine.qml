@@ -32,7 +32,6 @@ Item {
     // size happen together.
     readonly property bool promoted: root.synced ? itemIndex === centredItemIndex : true
     readonly property bool active: root.synced ? itemIndex === activeItemIndex : true
-    readonly property bool past: itemIndex < activeItemIndex
     // While the user scrolls the lines all look the same, only the line that is sung keeps its
     // highlight.
     readonly property bool browsing: !root.following
@@ -40,6 +39,9 @@ Item {
     // The push: the line that is up next leads, the lines above it follow one after another.
     property real shift: 0
     property int pushDelay: 0
+    // The scale starts with the line's push, so a line above the new centre does not shrink
+    // before the push has moved it.
+    readonly property int scaleDelay: Math.min(Math.abs(itemIndex - centredItemIndex), DashMetrics.lyricsTrackMaxPush) * DashMetrics.lyricsTrackPushStep
 
     function push(value, delay, animate) {
         pushMotion.stop();
@@ -51,6 +53,10 @@ Item {
         pushMove.from = shift;
         pushMove.to = value;
         pushMotion.start();
+    }
+
+    function stopPush() {
+        pushMotion.stop();
     }
 
     // A line without a height would drop out of the column, so the height never goes below one.
@@ -87,23 +93,19 @@ Item {
             id: face
             anchors.fill: parent
             scale: root.browsing ? 1 : root.promoted ? 1 : DashMetrics.lyricsLineInactiveScale
-            opacity: root.browsing ? 1 : root.promoted ? 1 : 0.4
             transformOrigin: Item.Center
 
             Behavior on scale {
                 enabled: root.ready && root.animationsEnabled
-                NumberAnimation {
-                    duration: DashMetrics.lyricsLineScaleDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: DashMetrics.lyricsTrackCurve
-                }
-            }
-            Behavior on opacity {
-                enabled: root.ready && root.animationsEnabled
-                NumberAnimation {
-                    duration: DashMetrics.lyricsLineFadeDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: DashMetrics.lyricsTrackEaseCurve
+                SequentialAnimation {
+                    PauseAnimation {
+                        duration: root.browsing ? 0 : root.scaleDelay
+                    }
+                    NumberAnimation {
+                        duration: DashMetrics.lyricsLineScaleDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: DashMetrics.lyricsTrackCurve
+                    }
                 }
             }
 
@@ -127,11 +129,13 @@ Item {
                         leadFontSize: root.leadFontSize
                         animationsEnabled: root.animationsEnabled
                         sweep: root.sweep
+                        dimmed: !root.browsing && !root.promoted
                     }
                 }
             }
 
-            LyricsInstrumental {
+            // The shape row in LyricsInstrumental is kept as an alternative.
+            LyricsInstrumentalWavy {
                 id: breakItem
                 visible: root.isBreak
                 width: parent.width
@@ -141,7 +145,8 @@ Item {
                 now: root.now
                 active: root.active
                 playing: root.controller.playing ?? false
-                past: root.past
+                dimmed: !root.browsing && !root.promoted
+                animationsEnabled: root.animationsEnabled
                 shapeSize: Math.round(root.leadFontSize * 1.2)
             }
 
@@ -160,17 +165,20 @@ Item {
             }
         }
 
-        // Clicking a line seeks to it. The layer sits in the moving item, so it follows the line
+        // Clicking an item seeks to it. The layer sits in the moving item, so it follows the item
         // while the track moves.
         StateLayer {
             anchors.fill: parent
-            visible: !root.isBreak && !root.isPlain
+            visible: !root.isPlain
             enabled: root.controller.canSeekLines
             stateColor: Theme.onSurfaceVariant
             cornerRadius: Theme.cornerRadius
             onClicked: {
                 root.activated();
-                root.controller.seekToLine(root.item.index ?? -1);
+                if (root.isBreak)
+                    root.controller.seekToTime(root.item.start ?? 0);
+                else
+                    root.controller.seekToLine(root.item.index ?? -1);
             }
         }
     }
