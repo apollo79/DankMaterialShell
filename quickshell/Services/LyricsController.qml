@@ -378,6 +378,9 @@ QtObject {
         if (!canSeekLines || !Number.isFinite(time))
             return false;
         player.position = Math.max(0.1, Math.min(time, duration * 0.99));
+        // Quickshell updates its local position synchronously, so anchor now instead of waiting
+        // for the zero-delay timer. That lets the track centre the clicked line in the same frame.
+        reanchor();
         return true;
     }
 

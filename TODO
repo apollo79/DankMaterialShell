@@ -5,11 +5,11 @@
 - [x] the elapsed time isn't updated and stays at 0:00
 - [x] no instrumental indicator at the start of the song although it also is longer than 5 seconds without text
 - [x] when the next active line moves up, it should increase the distance to the next line a bit, just like the distance to the previous line decreases, and then move to the standard again so that everything looks cohesive
-- [x] sometimes after the line change animation finishes, something moves / relayouts. Maybe because the text gets smaller and then more words fit in a line or something? Probably not since this doesn't happen again if I go back and let it play again, so it is a weird bug. The line on top of the new active one moves a bit down for a split second and then up again it seems.
+- [ ] sometimes after the line change animation finishes, something moves / relayouts. Maybe because the text gets smaller and then more words fit in a line or something? Probably not since this doesn't happen again if I go back and let it play again, so it is a weird bug. The line on top of the new active one moves a bit down for a split second and then up again it seems.
 - [x] the dimming of the color after the line becomes inactive isn't smooth but I couldn't fix it
 - [x] the position in a line doesn't seem to be calculated on opening the media player, so the fill is only applied once the song starts. Also, the animation position of the instrumental indicator is not calculated so it might move to a different position once "play" is clicked while in an instrumental part
 - [x] the fill for the instrumental indicator is not smooth but seems to go in steps
-- [ ] the lyrics seem to desync from the actual song sometimes. I don't know if this could be a new bug or if it is the fault of the player api on linux
+- [!!!] the lyrics seem to desync from the actual song sometimes. I don't know if this could be a new bug or if it is the fault of the player api on linux
 - [x] lines have more padding at the bottom than at the top but it should be equal so the statelayer looks nicer
 - [x] active secondary lines that are part of a block that is already moved up can still be active but get dimmed (the highlight is still there but it is also dimmed)
 - [x] the active line can go outside of the container at the sides and then it clips and a part isn't visible anymore
@@ -23,10 +23,13 @@
 - [x] different instrumental indicator or a springier animation?
 - [x] when starting to scroll, the lines change size immediately which introduces visual jarring since the scroll position changes with that
 - [ ] sometimes, a click on one of the lines moves the focus to the previous line and then a second click moves it to the clicked line
-- [ ] when scrolling manually and then clicking a line to jump to, the animation looks very bad (it kinda jumps, looks almost immediate). Instead, it should center the line using the smooth line change animation.
-- [ ] when clicking the "Follow playback" button, the view jumps to the position but it should again animate smoothly to into
+- [x] when scrolling manually and then clicking a line to jump to, the animation looks very bad (it kinda jumps, looks almost immediate). Instead, it should center the line using the smooth line change animation.
+- [x] when clicking the "Follow playback" button, the view jumps to the position but it should again animate smoothly to into
 - [x???] gradually fade out the color of the lines at the edges instead of having hard edges. Couldn't get it to work with MultiEffect so it is a shader now
 - [ ] clicking the lyrics button shows the lyrics but it lags and is not a clean transition animation
 - [x] the instrumental indicator getting filled is now unsmooth again, probably because of the different speeds depending on rotation or so
 - [ ] disable all animations when the user uses reduced motion
 - [ ] performance optimize cause rn, opening the music tab takes a long time and is lagging strongly for a bit and some of the animations not smooth
+- [ ] lyrics still don't use the full available height
+- [ ] only show the source at the bottom of the lyrics, not all the time as a fixed container
+- [ ] maybe add a source selector

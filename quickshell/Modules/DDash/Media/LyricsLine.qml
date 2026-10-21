@@ -35,16 +35,19 @@ Item {
     // While the user scrolls the lines all look the same, only the line that is sung keeps its
     // highlight.
     readonly property bool browsing: !root.following
+    readonly property real targetScale: root.browsing ? 1 : root.promoted ? 1 : DashMetrics.lyricsLineInactiveScale
 
     // The push: the line that is up next leads, the lines above it follow one after another.
     property real shift: 0
     property int pushDelay: 0
-    // The scale starts with the line's push, so a line above the new centre does not shrink
+    // The scale is driven from the same push, so a line above the new centre does not shrink
     // before the push has moved it.
-    readonly property int scaleDelay: Math.min(Math.abs(itemIndex - centredItemIndex), DashMetrics.lyricsTrackMaxPush) * DashMetrics.lyricsTrackPushStep
+    property real lineScale: 1
+    property int scaleDelay: 0
 
-    function push(value, delay, animate) {
+    function push(value, delay, animate, scale) {
         pushMotion.stop();
+        root.scaleTo(scale, delay, animate);
         if (!animate) {
             shift = value;
             return;
@@ -55,9 +58,28 @@ Item {
         pushMotion.start();
     }
 
+    function scaleTo(value, delay, animate) {
+        scaleMotion.stop();
+        if (!animate || value === root.lineScale) {
+            root.lineScale = value;
+            return;
+        }
+        scaleDelay = delay;
+        scaleMove.from = root.lineScale;
+        scaleMove.to = value;
+        scaleMotion.start();
+    }
+
     function stopPush() {
         pushMotion.stop();
     }
+
+    onBrowsingChanged: {
+        if (root.browsing)
+            root.scaleTo(1, 0, root.ready && root.animationsEnabled);
+    }
+
+    Component.onCompleted: root.lineScale = root.targetScale
 
     // A line without a height would drop out of the column, so the height never goes below one.
     implicitHeight: Math.max(1, root.isBreak ? breakItem.implicitHeight : root.isPlain ? plainText.implicitHeight : content.implicitHeight)
@@ -81,6 +103,23 @@ Item {
         }
     }
 
+    SequentialAnimation {
+        id: scaleMotion
+
+        PauseAnimation {
+            duration: root.scaleDelay
+        }
+
+        NumberAnimation {
+            id: scaleMove
+            target: root
+            property: "lineScale"
+            duration: DashMetrics.lyricsLineScaleDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: DashMetrics.lyricsTrackCurve
+        }
+    }
+
     Item {
         id: mover
         width: root.width
@@ -92,23 +131,8 @@ Item {
         Item {
             id: face
             anchors.fill: parent
-            scale: root.browsing ? 1 : root.promoted ? 1 : DashMetrics.lyricsLineInactiveScale
+            scale: root.lineScale
             transformOrigin: Item.Center
-
-            Behavior on scale {
-                enabled: root.ready && root.animationsEnabled
-                SequentialAnimation {
-                    PauseAnimation {
-                        duration: root.browsing ? 0 : root.scaleDelay
-                    }
-                    NumberAnimation {
-                        duration: DashMetrics.lyricsLineScaleDuration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: DashMetrics.lyricsTrackCurve
-                    }
-                }
-            }
-
             Column {
                 id: content
                 width: parent.width
@@ -174,11 +198,11 @@ Item {
             stateColor: Theme.onSurfaceVariant
             cornerRadius: Theme.cornerRadius
             onClicked: {
-                root.activated();
                 if (root.isBreak)
                     root.controller.seekToTime(root.item.start ?? 0);
                 else
                     root.controller.seekToLine(root.item.index ?? -1);
+                root.activated();
             }
         }
     }

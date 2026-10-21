@@ -29,9 +29,12 @@ Item {
     property bool animationsEnabled: true
     property bool sweep: true
     property real leadFontSize: Theme.fontSizeXLarge
-    // The extra offset the user scrolls the track with. It sits on the same translate as the push.
+    // The extra offset the user scrolls the track with. It is folded into the line shifts when
+    // following resumes, so the move and the resize start from the same position.
     property real userOffset: 0
     property bool userScrolling: false
+    // A follow resumed after manual scrolling moves the whole column as one instead of a stagger.
+    property bool resumedFromBrowsing: false
 
     readonly property bool synced: controller.synced
     readonly property bool playing: controller.playing
@@ -115,9 +118,15 @@ Item {
     property int pushedItemIndex: -1
 
     onFollowingChanged: {
-        root.heldItemIndex = root.following ? -1 : root.followedItemIndex;
-        if (!root.following)
+        if (!root.following) {
+            root.heldItemIndex = root.followedItemIndex;
+            root.resumedFromBrowsing = false;
             root.stopPush();
+            return;
+        }
+        root.resumedFromBrowsing = true;
+        root.bakeUserOffset();
+        root.heldItemIndex = -1;
     }
 
     // Where every line has to move to, so the centred line rests in the vertical centre.
@@ -148,28 +157,36 @@ Item {
     }
 
     // The push is driven from here, so every line knows its delay before the move starts.
-    function pushItems(value, animate) {
+    // A jump that skips more than one item moves every line together; the staggered push is
+    // meant for the small step between consecutive lines.
+    function pushItems(value, animate, immediate) {
         const centre = root.centredItemIndex;
+        const promote = root.following && root.synced;
         for (let i = 0; i < repeater.count; i++) {
             const item = repeater.itemAt(i);
             if (!item)
                 continue;
             // The line that is up next moves first, the lines around it follow one after another.
             // The lines above it get closer to it, the ones below it fall a little behind.
-            const delay = Math.min(Math.abs(item.itemIndex - centre), DashMetrics.lyricsTrackMaxPush) * DashMetrics.lyricsTrackPushStep;
-            item.push(value, delay, animate);
+            const delay = immediate ? 0 : Math.min(Math.abs(item.itemIndex - centre), DashMetrics.lyricsTrackMaxPush) * DashMetrics.lyricsTrackPushStep;
+            // Use the track's centre, not the line's possibly stale copy, so the new active line
+            // grows while the previous one shrinks.
+            const scale = promote && item.itemIndex !== centre ? DashMetrics.lyricsLineInactiveScale : 1;
+            item.push(value, delay, animate, scale);
         }
     }
 
     onTargetChanged: {
-        const animate = root.following && root.ready && root.animationsEnabled && root.pushedItemIndex !== root.centredItemIndex;
+        const previous = root.pushedItemIndex;
+        const jump = Math.abs(root.centredItemIndex - previous) > 1;
+        const animate = root.following && root.ready && root.animationsEnabled && previous !== root.centredItemIndex;
         root.pushedItemIndex = root.centredItemIndex;
-        root.pushItems(root.target, animate);
+        root.pushItems(root.target, animate, root.resumedFromBrowsing || jump);
     }
     onReadyChanged: {
         if (root.ready) {
             root.pushedItemIndex = root.centredItemIndex;
-            root.pushItems(root.target, false);
+            root.pushItems(root.target, false, false);
             if (root.synced)
                 root.now = root.controller.currentTime();
         }
@@ -194,8 +211,32 @@ Item {
             root.now = root.controller.currentTime();
     }
 
+    // Bakes the browsing offset into the line shifts, so resuming follow is one column move
+    // instead of an offset animation competing with a staggered push.
+    function bakeUserOffset() {
+        const offset = root.userOffset;
+        if (offset === 0)
+            return;
+        for (let i = 0; i < repeater.count; i++) {
+            const item = repeater.itemAt(i);
+            if (!item)
+                continue;
+            item.stopPush();
+            item.shift += offset;
+        }
+        root.userOffset = 0;
+    }
+
     function resume() {
-        userOffset = 0;
+        if (root.userOffset !== 0) {
+            root.resumedFromBrowsing = true;
+            root.bakeUserOffset();
+        }
+        if (!root.resumedFromBrowsing)
+            return;
+        root.pushItems(root.target, root.ready && root.animationsEnabled, true);
+        root.pushedItemIndex = root.centredItemIndex;
+        root.resumedFromBrowsing = false;
     }
 
     function scrollBy(amount) {
@@ -218,8 +259,9 @@ Item {
     }
 
     function reset() {
-        userOffset = 0;
+        root.resumedFromBrowsing = false;
         snap();
+        userOffset = 0;
     }
 
     Component.onCompleted: snapTimer.restart()
