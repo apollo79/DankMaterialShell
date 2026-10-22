@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.Common
+import qs.Services
 import qs.DCommon.Widgets
 import qs.Modules.DDash
 
@@ -71,9 +72,9 @@ Item {
     // The sung words take the tertiary, the words that are still to come a hint of it. The mockup
     // mixes the accent with transparency, so the two are told apart by the strength, and a line
     // that is done fades into the same rest the lines that were never sung have.
-    readonly property color accentRest: Theme.withAlpha(Theme.tertiary, 0.35)
+    readonly property color accentRest: Theme.withAlpha(MediaAccentService.highlight, 0.35)
     readonly property color restColor: root.accentRest
-    readonly property color fillColor: Theme.withAlpha(Theme.tertiary, root.highlight)
+    readonly property color fillColor: Theme.withAlpha(MediaAccentService.highlight, root.highlight)
     readonly property int alignment: part.side === 0 ? Text.AlignHCenter : (part.side < 0) !== I18n.isRtl ? Text.AlignLeft : Text.AlignRight
     readonly property real fontSize: part.background ? Math.round(root.leadFontSize * Theme.fontSizeLarge / Theme.fontSizeXLarge) : root.leadFontSize
     readonly property int fontWeight: root.synced && !part.background ? Theme.fontWeightBold : Theme.fontWeightMedium

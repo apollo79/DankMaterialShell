@@ -13,6 +13,7 @@ Singleton {
 
     readonly property bool hasAccent: MediaOptions.albumArtAccent ? _accent !== null : true
     readonly property color accent: MediaOptions.albumArtAccent && _accent !== null ? _accent : Theme.primary
+    readonly property color highlight: MediaOptions.albumArtAccent && _accent !== null ? _accent : Theme.tertiary
     property int lyricsConsumers: 0
     readonly property bool lyricsLive: lyricsConsumers > 0
     readonly property var lyricsHues: lyricsLive ? _lyricsHues() : [Theme.primary, Theme.tertiary, Theme.secondary]

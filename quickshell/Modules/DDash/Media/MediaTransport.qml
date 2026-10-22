@@ -34,6 +34,7 @@ RowLayout {
     TransportButton {
         id: previousButton
         mediaAction: "previous"
+        iconFilled: true
     }
 
     TransportButton {
@@ -42,7 +43,7 @@ RowLayout {
         size: "m"
         weight: DashMetrics.mediaPlayWidthRatio + (Number(shuffleButton.visible) + Number(repeatButton.visible)) * DashMetrics.mediaPlayWidthStep
         variant: "filled"
-        iconSize: Math.round(root.buttonSize * Theme.iconSizeLarge / Theme.buttonHeightM)
+        iconFilled: true
         containerColor: MediaAccentService.accentContainer
         contentColor: MediaAccentService.onAccentContainer
     }
@@ -50,6 +51,7 @@ RowLayout {
     TransportButton {
         id: nextButton
         mediaAction: "next"
+        iconFilled: true
     }
 
     TransportButton {

@@ -44,7 +44,6 @@ MediaChromeBase {
         }
         y: root.compact ? 0 : (parent.height - height) / 2
         width: root.artworkSize
-        // The lyrics fill the same height as the deck on the right; the square artwork stays square.
         height: !root.compact && artView.lyricsVisible ? deckArea.height : width
 
         MediaArtView {
@@ -65,29 +64,18 @@ MediaChromeBase {
         width: root.deckWidth
         height: deck.height + root.deckInset * 2
 
-        Rectangle {
-            id: deckContainer
-
-            anchors.fill: parent
-            visible: root.showControlsContainer
-            color: Theme.surfaceContainer
-            radius: Theme.cornerRadiusXL
-            border.width: Theme.layerOutlineWidth
-            border.color: Theme.outlineVariant
-        }
-
         Column {
             id: deck
 
-            x: root.deckInset
             y: root.deckInset
-            width: parent.width - root.deckInset * 2
+            width: parent.width
             spacing: Theme.spacingXL
 
             Item {
                 id: sourceRow
 
-                width: parent.width
+                x: root.deckInset
+                width: parent.width - root.deckInset * 2
                 height: Theme.buttonHeightXS
                 implicitHeight: height
 
@@ -102,7 +90,7 @@ MediaChromeBase {
                         anchors.verticalCenter: parent.verticalCenter
                         text: I18n.tr("Listening from", "Label before the active media player")
                         color: Theme.onSurfaceVariant
-                        font.pixelSize: Theme.fontSizeSmall
+                        font.pixelSize: Theme.fontSizeMedium
                     }
 
                     DButton {
@@ -124,138 +112,155 @@ MediaChromeBase {
                 }
             }
 
-            Column {
-                id: titleBlock
-
+            Rectangle {
                 width: parent.width
-                spacing: Theme.spacingXXS
+                implicitHeight: deckContainer.height
+                color: root.showControlsContainer ? Theme.surfaceContainer : "transparent"
+                radius: Theme.cornerRadiusXL
+                border.width: Theme.layerOutlineWidth
+                border.color: Theme.outlineVariant
 
-                TextMetrics {
-                    id: fullSizeTitle
-                    text: root.title
-                    font: Qt.font({
-                                      family: titleText.font.family,
-                                      weight: titleText.font.weight,
-                                      pixelSize: Theme.fontSizeDisplay
-                                  })
-                }
+                Column {
+                    id: deckContainer
+                    x: root.deckInset
+                    y: root.deckInset
+                    width: parent.width - root.deckInset * 2
+                    height: implicitHeight + root.deckInset * 2
+                    spacing: Theme.spacingXL
 
-                FontMetrics {
-                    id: fullSizeTitleFont
-                    font: titleText.font
-                }
+                    Column {
+                        id: titleBlock
 
-                ScrollingText {
-                    id: titleText
+                        width: parent.width
+                        spacing: Theme.spacingXXS
 
-                    readonly property real fittedPixelSize: {
-                        if (fullSizeTitle.advanceWidth <= width)
-                            return Theme.fontSizeDisplay;
-                        const fitted = Math.floor(Theme.fontSizeDisplay * width / fullSizeTitle.advanceWidth);
-                        return Math.max(Theme.fontSizeXXLarge, fitted);
-                    }
-
-                    width: parent.width
-                    implicitHeight: Math.ceil(fullSizeTitleFont.height)
-                    height: implicitHeight
-                    text: root.title
-                    fontToken: root.titleFontToken
-                    color: Theme.tertiary
-                    // The prototype sets the title in a heavy, rounded instance of the interface font.
-                    font.weight: root.titleFontToken === "ui" ? DashMetrics.mediaTitleFontWeight : Font.Normal
-                    font.variableAxes: root.titleFontToken === "ui" ? DashMetrics.mediaTitleFontAxes : ({})
-                    font.pixelSize: fittedPixelSize
-                    horizontalAlignment: Text.AlignHCenter
-                    active: root.scrolling
-                    loop: true
-                    fadeEdges: true
-                    pxPerMs: DashMetrics.mediaTextScrollSpeed / 1000
-                    stepInterval: DashMetrics.mediaTextScrollStep
-                }
-
-                ScrollingText {
-                    width: parent.width
-                    text: [root.artist, root.album].filter(Boolean).join(" · ") || "\u00a0"
-                    color: Theme.onSurfaceVariant
-                    font.pixelSize: Theme.fontSizeSmall
-                    horizontalAlignment: Text.AlignHCenter
-                    active: root.scrolling
-                    loop: true
-                    fadeEdges: true
-                    pxPerMs: DashMetrics.mediaTextScrollSpeed / 1000
-                    stepInterval: DashMetrics.mediaTextScrollStep
-                }
-            }
-
-            Column {
-                id: controls
-
-                width: parent.width
-                spacing: Theme.spacingL
-
-                MediaActionRow {
-                    id: actionRow
-
-                    width: parent.width
-                    player: root.player
-                }
-
-                Item {
-                    id: seekBlock
-
-                    width: parent.width
-                    height: seekbar.height + times.height + Theme.spacingXS
-                    implicitHeight: height
-                    visible: root.seekbarEnabled && !!root.presentation
-
-                    MediaWaveSeekbar {
-                        id: seekbar
-
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        player: root.player
-                        visible: root.hasSeekbar
-                    }
-
-                    Item {
-                        id: times
-
-                        anchors.top: seekbar.bottom
-                        anchors.topMargin: Theme.spacingXS
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: elapsed.implicitHeight
-                        visible: root.hasSeekbar
-
-                        TimeLabel {
-                            id: elapsed
-
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: Format.formatDuration(seekbar.value * (root.presentation?.length ?? 0))
-                            reserveText: duration.text.replace(/\d/g, "8")
+                        TextMetrics {
+                            id: fullSizeTitle
+                            text: root.title
+                            font: Qt.font({
+                                family: titleText.font.family,
+                                weight: titleText.font.weight,
+                                pixelSize: Theme.fontSizeDisplay
+                            })
                         }
 
-                        TimeLabel {
-                            id: duration
+                        FontMetrics {
+                            id: fullSizeTitleFont
+                            font: titleText.font
+                        }
 
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: Format.formatDuration(root.presentation?.length ?? 0)
-                            reserveText: text.replace(/\d/g, "8")
+                        ScrollingText {
+                            id: titleText
+
+                            readonly property real fittedPixelSize: {
+                                if (fullSizeTitle.advanceWidth <= width)
+                                    return Theme.fontSizeDisplay;
+                                const fitted = Math.floor(Theme.fontSizeDisplay * width / fullSizeTitle.advanceWidth);
+                                return Math.max(Theme.fontSizeXXLarge, fitted);
+                            }
+
+                            width: parent.width
+                            implicitHeight: Math.ceil(fullSizeTitleFont.height)
+                            height: implicitHeight
+                            text: root.title
+                            fontToken: root.titleFontToken
+                            color: MediaAccentService.highlight
+                            font.weight: root.titleFontToken === "ui" ? DashMetrics.mediaTitleFontWeight : Font.Normal
+                            font.variableAxes: root.titleFontToken === "ui" ? DashMetrics.mediaTitleFontAxes : ({})
+                            font.pixelSize: fittedPixelSize
+                            horizontalAlignment: Text.AlignHCenter
+                            active: root.scrolling
+                            loop: true
+                            fadeEdges: true
+                            pxPerMs: DashMetrics.mediaTextScrollSpeed / 1000
+                            stepInterval: DashMetrics.mediaTextScrollStep
+                        }
+
+                        ScrollingText {
+                            width: parent.width
+                            text: [root.artist, root.album].filter(Boolean).join(" · ") || "\u00a0"
+                            color: Theme.onSurfaceVariant
+                            font.pixelSize: Theme.fontSizeSmall
+                            horizontalAlignment: Text.AlignHCenter
+                            active: root.scrolling
+                            loop: true
+                            fadeEdges: true
+                            pxPerMs: DashMetrics.mediaTextScrollSpeed / 1000
+                            stepInterval: DashMetrics.mediaTextScrollStep
                         }
                     }
-                }
 
-                MediaTransport {
-                    id: transport
+                    Column {
+                        id: controls
 
-                    width: parent.width
-                    player: root.player
-                    presentation: root.presentation
-                    buttonSize: root.transportHeight
-                    visible: hasControls
+                        width: parent.width
+                        spacing: Theme.spacingL
+
+                        Item {
+                            id: seekBlock
+
+                            width: parent.width
+                            height: seekbar.height + times.height + Theme.spacingXS
+                            implicitHeight: height
+                            visible: root.seekbarEnabled && !!root.presentation
+
+                            MediaWaveSeekbar {
+                                id: seekbar
+
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                player: root.player
+                                visible: root.hasSeekbar
+                            }
+
+                            Item {
+                                id: times
+
+                                anchors.top: seekbar.bottom
+                                anchors.topMargin: Theme.spacingXS
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: elapsed.implicitHeight
+                                visible: root.hasSeekbar
+
+                                TimeLabel {
+                                    id: elapsed
+
+                                    anchors.left: parent.left
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Format.formatDuration(seekbar.value * (root.presentation?.length ?? 0))
+                                    reserveText: duration.text.replace(/\d/g, "8")
+                                }
+
+                                TimeLabel {
+                                    id: duration
+
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Format.formatDuration(root.presentation?.length ?? 0)
+                                    reserveText: text.replace(/\d/g, "8")
+                                }
+                            }
+                        }
+
+                        MediaTransport {
+                            id: transport
+
+                            width: parent.width
+                            player: root.player
+                            presentation: root.presentation
+                            buttonSize: root.transportHeight
+                            visible: hasControls
+                        }
+
+                        MediaActionRow {
+                            id: actionRow
+
+                            width: parent.width
+                            player: root.player
+                        }
+                    }
                 }
             }
         }
@@ -265,7 +270,7 @@ MediaChromeBase {
         width: Math.ceil(reservedWidth)
         isMonospace: false
         color: Theme.onSurfaceVariant
-        font.pixelSize: Theme.fontSizeSmall
+        font.pixelSize: Theme.fontSizeMedium
         font.weight: Theme.fontWeightMedium
     }
 }

@@ -11,7 +11,7 @@ Item {
     id: root
 
     // The line was clicked, the panel takes the focus and follows the playback again.
-    signal activated()
+    signal activated
     required property var controller
     required property var item
     required property int itemIndex
@@ -158,8 +158,7 @@ Item {
                 }
             }
 
-            // The shape row in LyricsInstrumental is kept as an alternative.
-            LyricsInstrumentalWavy {
+            LyricsInstrumental {
                 id: breakItem
                 visible: root.isBreak
                 width: parent.width

@@ -198,15 +198,12 @@ Singleton {
     readonly property real mediaInnerRadius: Math.max(Theme.cornerRadiusXS, surfaceRadius - mediaCardMargin - Theme.layerOutlineWidth)
     readonly property real mediaArtSoftRadiusRatio: 0.3
     readonly property real mediaArtPlaceholderIcon: Theme.buttonHeightM
-    // The bento media tab splits its card between the artwork stage and the deck.
     readonly property real mediaArtColumnRatio: 5 / 11
     readonly property real mediaDeckColumnRatio: 6 / 11
     readonly property real mediaSeekbarHeight: 22
-    // The wave bar has to fit the handle, which stretches into a tall pill while seeking.
     readonly property real mediaWaveSeekbarHeight: 30
     readonly property real mediaTransportMaxHeight: 70
     readonly property int mediaTitleFontWeight: 700
-    // The mockup sets the title in the rounded, graded instance of the interface font.
     readonly property var mediaTitleFontAxes: ({
             "ROND": 100,
             "GRAD": 100

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Common
+import qs.Services
 import qs.DCommon.Widgets
 import qs.Modules.Settings.Widgets
 import qs.Modules.DDash
@@ -8,7 +9,7 @@ SettingsRow {
     id: root
 
     property bool selected: false
-    property color accent: Theme.primary
+    property color accent: MediaAccentService.accent
 
     signal activated
 

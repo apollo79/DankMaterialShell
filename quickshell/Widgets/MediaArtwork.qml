@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell.Widgets
 import qs.Common
+import qs.Services
 import qs.DCommon.Widgets
 
 Item {
@@ -17,7 +18,7 @@ Item {
     ClippingRectangle {
         anchors.fill: parent
         radius: root.cornerRadius
-        color: Theme.primaryContainer
+        color: MediaAccentService.accentContainer
         antialiasing: true
 
         DIcon {

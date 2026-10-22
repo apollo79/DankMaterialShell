@@ -30,6 +30,6 @@
 - [x] the instrumental indicator getting filled is now unsmooth again, probably because of the different speeds depending on rotation or so
 - [ ] disable all animations when the user uses reduced motion
 - [ ] performance optimize cause rn, opening the music tab takes a long time and is lagging strongly for a bit and some of the animations not smooth
-- [ ] lyrics still don't use the full available height
 - [ ] only show the source at the bottom of the lyrics, not all the time as a fixed container
 - [ ] maybe add a source selector
+- [x] make sure to use accent color everywhere if the option is turned on
