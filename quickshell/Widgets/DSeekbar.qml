@@ -87,6 +87,9 @@ Item {
     property color accentColor: Theme.primary
     property color accentTrackColor: Theme.withAlpha(accentColor, 0.28)
     property color accentSubtleColor: Theme.withAlpha(accentColor, 0.55)
+    // Disabled, the bar takes Material's disabled colours like the controls around it.
+    readonly property color shownAccent: enabled ? accentColor : Theme.onSurface_38
+    readonly property color shownTrack: enabled ? accentTrackColor : Theme.onSurface_12
 
     property real waveLineWidth: 2
     property real waveAmplitude: 1.6
@@ -263,10 +266,10 @@ Item {
                 handleWidth: root.handleWidth
                 handleHeight: root.handleHeight
                 handleGap: root.handleGap
-                handleColor: root.accentColor
-                fillColor: root.accentColor
-                playheadColor: root.accentColor
-                trackColor: root.accentTrackColor
+                handleColor: root.shownAccent
+                fillColor: root.shownAccent
+                playheadColor: root.shownAccent
+                trackColor: root.shownTrack
                 actualProgressColor: root.accentSubtleColor
                 isPlaying: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing
                 onFrameTicked: {
@@ -309,9 +312,9 @@ Item {
                 id: flatBar
 
                 property real lineWidth: root.showHandle ? root.waveLineWidth : 3
-                property color trackColor: root.showHandle ? root.accentTrackColor : Theme.withAlpha(Theme.surfaceVariant, 0.40)
-                property color fillColor: root.accentColor
-                property color playheadColor: root.accentColor
+                property color trackColor: root.showHandle ? root.shownTrack : Theme.withAlpha(Theme.surfaceVariant, 0.40)
+                property color fillColor: root.shownAccent
+                property color playheadColor: root.shownAccent
                 property color actualProgressColor: Theme.onSurface_38
                 readonly property real midY: height / 2
                 readonly property real handleX: root.trackValue(root.value) * width
