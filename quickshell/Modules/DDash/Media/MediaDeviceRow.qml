@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Layouts
 import qs.Common
 import qs.Services
 import qs.DCommon.Widgets
@@ -12,19 +11,12 @@ SettingsRow {
 
     required property var node
     property bool selected: false
-    property bool playing: false
 
     signal activated
 
     title: AudioService.displayName(node)
-    subtitle: {
-        if (!selected)
-            return I18n.tr("Available");
-        if (node?.audio?.muted)
-            return I18n.tr("Muted");
-        return playing ? I18n.tr("Playing", "Audio output currently playing media") : I18n.tr("Active");
-    }
-    clickable: true
+    // The selected output has nothing to do on click, and its body holds the volume controls.
+    clickable: !selected
     paddingH: Theme.spacingL
     paddingV: Theme.spacingL
     rowColor: selected ? Theme.selectedContainer : Theme.chipSurface
@@ -54,47 +46,10 @@ SettingsRow {
         active: root.selected && !!root.node?.audio
         visible: active
 
-        sourceComponent: RowLayout {
-            spacing: Theme.spacingS
-
-            DActionButton {
-                buttonSize: Theme.iconButtonSize
-                iconName: volumeSlider.volumeIcon
-                iconColor: root.titleColor
-                Accessible.name: volumeSlider.muteLabel
-                onClicked: volumeSlider.muteRequested()
-            }
-
-            MediaVolumeSlider {
-                id: volumeSlider
-                Layout.fillWidth: true
-                size: "xs"
-                insetIcon: ""
-                volume: root.node?.audio?.volume ?? 0
-                muted: root.node?.audio?.muted ?? false
-                maximumVolume: AudioService.getMaxVolumePercent(root.node)
-                fillColor: Theme.onSelectedContainer
-                fillTextColor: Theme.selectedContainer
-                trackColor: Theme.onPrimary
-                trackTextColor: Theme.onSelectedContainer
-                Accessible.name: I18n.tr("Volume") + ": " + root.title
-                onVolumeChangedByUser: volume => {
-                    const audio = root.node?.audio;
-                    if (!audio)
-                        return;
-                    SessionData.suppressOSDTemporarily();
-                    audio.volume = volume;
-                    if (volume > 0)
-                        audio.muted = false;
-                }
-                onMuteRequested: {
-                    const audio = root.node?.audio;
-                    if (!audio)
-                        return;
-                    SessionData.suppressOSDTemporarily();
-                    audio.muted = !audio.muted;
-                }
-            }
+        sourceComponent: MediaSinkVolume {
+            node: root.node
+            label: root.title
+            contentColor: root.titleColor
         }
     }
 }
