@@ -136,6 +136,7 @@ var DEFAULTS = {
         mediaSize: 1,
         mediaAdaptiveWidthEnabled: true,
         mediaShowLyrics: true,
+        mediaSmoothLyrics: false,
         mediaShowCoverArt: true,
         audioScrollMode: "volume"
     },
