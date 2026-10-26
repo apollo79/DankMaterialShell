@@ -191,10 +191,10 @@ quickshell -p quickshell/
 
 Contributions welcome. Bug fixes, widgets, features, translation, documentation and plugins all help.
 
-- For code contributions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+- For code contributions, see [Development](#development) and [CONTRIBUTING.md](CONTRIBUTING.md)
 - Translations are managed through POEditor: [DMS on POEditor](https://poeditor.com/join/project/kyeCPTpmJM)
-- For documentation contributions, see [dux-docs](https://github.com/duxlabs-dev/dux-docs).
-- If you want to discuss designs or need help with contributing, join the [Discord](https://discord.gg/ppWTpKmPgT).
+- For documentation contributions, see [dux-docs](https://github.com/duxlabs-dev/dux-docs)
+- If you want to discuss designs or need help with contributing, join the [Discord](https://discord.gg/ppWTpKmPgT)
 
 ## Credits
 
