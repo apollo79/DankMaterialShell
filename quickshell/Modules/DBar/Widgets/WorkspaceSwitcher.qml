@@ -39,6 +39,7 @@ BasePill {
     readonly property real dragOpacity: 0.8
     readonly property real hoverFadeAlpha: 0.7
     readonly property real cardWindowRatio: 0.45
+    readonly property real labelSize: Math.min(Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText), Math.floor(widgetThickness * BarMetrics.indicatorLabelRatio))
 
     WorkspaceSwitcherModel {
         id: workspaces
@@ -128,7 +129,8 @@ BasePill {
         return workspaces.recordOf(entry);
     }
 
-    readonly property real appIconSize: Theme.barIconSize(barThickness, -6 + root.opt("workspaceAppIconSizeOffset"), root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
+    // the pill pads icons by spacingXS on each side and must fit the widget thickness
+    readonly property real appIconSize: Math.max(0, Math.min(Theme.barIconSize(barThickness, -6 + root.opt("workspaceAppIconSizeOffset"), root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale), widgetThickness - Theme.spacingXS * 2))
 
     function getRealWorkspaces() {
         return workspaces.realWorkspaces;
@@ -263,13 +265,11 @@ BasePill {
             width: root.isVertical ? root.widgetThickness : overviewBg.width
             height: root.isVertical ? overviewBg.height : root.widgetThickness
 
-            readonly property real labelSize: Theme.barTextSize(root.barThickness, root.barConfig?.fontScale, root.barConfig?.maximizeWidgetText)
-
             Rectangle {
                 id: overviewBg
                 anchors.centerIn: parent
-                width: root.isVertical ? Math.max(root.widgetThickness * root.compactRatio, overviewContent.implicitWidth + Theme.spacingS) : (overviewContent.implicitWidth + Theme.spacingS * 2)
-                height: Math.max(root.widgetThickness * root.slimRatio, overviewContent.implicitHeight + Theme.spacingXS)
+                width: root.isVertical ? Math.min(root.widgetThickness, Math.max(root.widgetThickness * root.compactRatio, overviewContent.implicitWidth + Theme.spacingS)) : (overviewContent.implicitWidth + Theme.spacingS * 2)
+                height: root.isVertical ? Math.max(root.widgetThickness * root.slimRatio, overviewContent.implicitHeight + Theme.spacingXS) : Math.min(root.widgetThickness, Math.max(root.widgetThickness * root.slimRatio, overviewContent.implicitHeight + Theme.spacingXS))
                 radius: BarMetrics.pillRadius(Math.min(width, height), BarMetrics.widgetStyle(root.barConfig))
                 color: Theme.withAlpha(Theme.primary, root.overviewTintAlpha)
 
@@ -281,7 +281,7 @@ BasePill {
                     DIcon {
                         anchors.verticalCenter: parent.verticalCenter
                         name: "grid_view"
-                        size: overviewPill.labelSize + 2
+                        size: root.labelSize + 2
                         color: Theme.primary
                     }
 
@@ -290,7 +290,7 @@ BasePill {
                         visible: !root.isVertical
                         text: I18n.tr("Overview", "noun, niri compositor overview mode label")
                         color: Theme.primary
-                        font.pixelSize: overviewPill.labelSize
+                        font.pixelSize: root.labelSize
                         font.weight: Theme.fontWeightMedium
                     }
                 }
@@ -423,16 +423,12 @@ BasePill {
                 }
 
                 readonly property real lineThickness: Math.max(Theme.spacingXXS, root.widgetThickness * (isActive ? root.activeSlimRatio : root.slimRatio))
-                // a label scales the whole shape up and itself down to fit, so every style keeps its proportions
+                // a label scales the whole shape with the bar font, up to the widget thickness, so every style keeps its proportions
                 readonly property bool labeled: !root.linesStyle && !root.opt("showWorkspaceApps") && (root.opt("showWorkspaceIndex") || root.opt("showWorkspaceName") || loadedHasIcon)
                 readonly property real slimBase: widgetThickness * (isActive ? root.activeSlimRatio : root.slimRatio)
-                readonly property real labelScale: labeled ? Math.max(BarMetrics.indicatorLabelScale, BarMetrics.indicatorLabelMin / BarMetrics.indicatorLabelRatio / slimBase) : 1
+                readonly property real labelScale: labeled ? Math.min(root.widgetThickness / slimBase, Math.max(BarMetrics.indicatorLabelScale, Math.max(root.labelSize, BarMetrics.indicatorLabelMin) / BarMetrics.indicatorLabelRatio / slimBase)) : 1
                 readonly property real crossBase: root.opt("showWorkspaceApps") ? Math.max(widgetThickness * root.compactRatio, root.appIconSize + Theme.spacingXS * 2) : slimBase * labelScale
                 readonly property real primaryBase: root.dotsStyle ? crossBase : labelScale * (isActive ? Math.max(root.widgetThickness * root.activeRatio, root.appIconSize * root.activeIconRatio) : Math.max(root.widgetThickness * root.compactRatio, root.appIconSize * root.iconRatio))
-                readonly property real labelSize: {
-                    const barSize = Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText);
-                    return labeled ? Math.min(barSize, Math.round(crossBase * BarMetrics.indicatorLabelRatio)) : barSize;
-                }
                 readonly property real baseWidth: root.isVertical ? (root.linesStyle ? lineThickness : crossBase) : primaryBase
                 readonly property real baseHeight: root.isVertical ? primaryBase : (root.linesStyle ? lineThickness : crossBase)
                 readonly property bool hasWorkspaceName: root.opt("showWorkspaceName") && record?.name && record.name !== ""
@@ -463,8 +459,9 @@ BasePill {
                 readonly property real visualWidth: {
                     if (contentImplicitWidth <= 0 || (underline && root.isVertical))
                         return baseWidth + iconsExtraWidth;
-                    const padding = root.isVertical ? Theme.spacingXS : Theme.spacingS;
-                    return Math.max(baseWidth + iconsExtraWidth, contentImplicitWidth + padding);
+                    if (root.isVertical)
+                        return Math.min(root.widgetThickness, Math.max(baseWidth, contentImplicitWidth + Theme.spacingXS));
+                    return Math.max(baseWidth + iconsExtraWidth, contentImplicitWidth + Theme.spacingL);
                 }
                 // the row reserves icon height for each label, so a horizontal label must not set the thickness
                 readonly property real visualHeight: {
@@ -944,7 +941,7 @@ BasePill {
                                         id: wsIcon
                                         anchors.verticalCenter: parent.verticalCenter
                                         name: loadedIconData?.value ?? ""
-                                        size: labelSize
+                                        size: root.labelSize
                                         color: contentInk
                                         weight: (isActive && !isPlaceholder) ? 500 : 400
                                     }
@@ -960,7 +957,7 @@ BasePill {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: loadedIconData?.value ?? ""
                                         color: contentInk
-                                        font.pixelSize: labelSize
+                                        font.pixelSize: root.labelSize
                                         font.weight: (isActive && !isPlaceholder) ? Theme.fontWeightMedium : Theme.fontWeight
                                     }
                                 }
@@ -975,7 +972,7 @@ BasePill {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: loadedHasIcon ? (record?.name ?? "") : root.getWorkspaceIndex(record, index)
                                         color: contentInk
-                                        font.pixelSize: labelSize
+                                        font.pixelSize: root.labelSize
                                         font.weight: (isActive && !isPlaceholder) ? Theme.fontWeightMedium : Theme.fontWeight
                                     }
                                 }
@@ -1116,7 +1113,7 @@ BasePill {
                                     visible: loadedHasIcon && loadedIconData?.type === "icon"
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     name: loadedIconData?.value ?? ""
-                                    size: labelSize
+                                    size: root.labelSize
                                     color: contentInk
                                     weight: (isActive && !isPlaceholder) ? 500 : 400
                                 }
@@ -1126,7 +1123,7 @@ BasePill {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: loadedIconData?.value ?? ""
                                     color: contentInk
-                                    font.pixelSize: labelSize
+                                    font.pixelSize: root.labelSize
                                     font.weight: (isActive && !isPlaceholder) ? Theme.fontWeightMedium : Theme.fontWeight
                                 }
 
@@ -1135,7 +1132,7 @@ BasePill {
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     text: root.getWorkspaceIndex(record, index)
                                     color: contentInk
-                                    font.pixelSize: labelSize
+                                    font.pixelSize: root.labelSize
                                     font.weight: (isActive && !isPlaceholder) ? Theme.fontWeightMedium : Theme.fontWeight
                                 }
 
