@@ -854,8 +854,8 @@ BasePill {
                     thickness: Math.min(width, height)
                     style: BarMetrics.widgetStyle(root.barConfig)
                     vertical: root.isVertical
-                    joinedStart: root.segmented && index > 0
-                    joinedEnd: root.segmented && index < workspaceRepeater.count - 1
+                    joinedStart: root.segmented && index > 0 && !isActive
+                    joinedEnd: root.segmented && index < workspaceRepeater.count - 1 && !isActive
                     pressed: mouseArea.pressed
                     color: root.cardsStyle && !isActive ? "transparent" : delegateRoot.displayColor
                     radiusOverride: BarMetrics.indicatorRadius(root.indicatorStyle, thickness, root.roundness)
