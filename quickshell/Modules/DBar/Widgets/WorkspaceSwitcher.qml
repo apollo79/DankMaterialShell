@@ -14,6 +14,32 @@ import "../../../DCommon/Common/WheelInput.js" as WheelInput
 BasePill {
     id: root
 
+    // sized from its label and centered on the glyph box, since a digit's line box is off-center
+    component CountBadge: Rectangle {
+        property alias text: badgeLabel.text
+        property alias textColor: badgeLabel.color
+
+        height: Math.max(badgeLabel.font.pixelSize, Math.ceil(badgeMetrics.tightBoundingRect.height) + Theme.spacingXXS * 2)
+        width: Math.max(height, Math.ceil(badgeMetrics.tightBoundingRect.width) + Theme.spacingXXS * 2)
+        radius: height / 2
+        color: Theme.primary
+
+        StyledTextMetrics {
+            id: badgeMetrics
+            font: badgeLabel.font
+            text: badgeLabel.text
+        }
+
+        StyledText {
+            id: badgeLabel
+            x: Math.round((parent.width - badgeMetrics.tightBoundingRect.width) / 2 - badgeMetrics.tightBoundingRect.x)
+            y: Math.round((parent.height - badgeMetrics.tightBoundingRect.height) / 2 - baselineOffset - badgeMetrics.tightBoundingRect.y)
+            font.pixelSize: BarMetrics.indicatorLabelMin
+            font.weight: Theme.fontWeightMedium
+            color: Theme.onPrimary
+        }
+    }
+
     enableBackgroundHover: false
 
     property bool isVertical: axis?.isVertical ?? false
@@ -583,9 +609,10 @@ BasePill {
                     }
                 }
 
+                readonly property color activeInk: inkFromMode(activeColorMode, activeColor, Theme.onPrimary)
                 readonly property color filledInk: {
                     if (isActive)
-                        return inkFromMode(activeColorMode, activeColor, Theme.onPrimary);
+                        return activeInk;
                     if (isUrgent)
                         return inkFromMode(urgentColorMode, urgentColor, Theme.onError);
                     const idleInk = Theme.withAlpha(Theme.surfaceText, root.inactiveLabelAlpha);
@@ -1027,13 +1054,13 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
 
                                         IconImage {
                                             id: rowAppIcon
                                             anchors.fill: parent
                                             source: modelData.icon || ""
-                                            opacity: modelData.active ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: !modelData.isQuickshell && !modelData.isSteamApp && status === Image.Ready
                                         }
 
@@ -1075,7 +1102,7 @@ BasePill {
                                         IconImage {
                                             anchors.fill: parent
                                             source: modelData.icon
-                                            opacity: modelData.active ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isQuickshell
                                             layer.enabled: true
                                             layer.effect: MultiEffect {
@@ -1089,7 +1116,7 @@ BasePill {
                                             id: rowSteamIcon
                                             anchors.fill: parent
                                             source: modelData.icon
-                                            opacity: modelData.active ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isSteamApp && modelData.icon
                                         }
 
@@ -1098,7 +1125,7 @@ BasePill {
                                             size: root.appIconSize
                                             name: "sports_esports"
                                             color: appHighlightActive ? focusedBorderColor : Theme.widgetTextColor
-                                            opacity: modelData.active ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isSteamApp && !modelData.icon
                                         }
 
@@ -1116,24 +1143,16 @@ BasePill {
                                             id: rowAppHover
                                         }
 
-                                        Rectangle {
+                                        CountBadge {
                                             visible: modelData.count > 1 && !isActive
-                                            width: root.appIconSize * 0.67
-                                            height: root.appIconSize * 0.67
-                                            radius: root.appIconSize * 0.33
-                                            color: "black"
-                                            border.color: "white"
-                                            border.width: Theme.outlineWidth
+                                            text: modelData.count
+                                            color: activeColor
+                                            textColor: activeInk
                                             anchors.right: parent.right
                                             anchors.bottom: parent.bottom
+                                            anchors.rightMargin: -Theme.spacingXXS
+                                            anchors.bottomMargin: -Theme.spacingXXS
                                             z: 2
-
-                                            StyledText {
-                                                anchors.centerIn: parent
-                                                text: modelData.count
-                                                font.pixelSize: root.appIconSize * 0.44
-                                                color: "white"
-                                            }
                                         }
                                     }
                                 }
@@ -1186,13 +1205,13 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
 
                                         IconImage {
                                             id: colAppIcon
                                             anchors.fill: parent
                                             source: modelData.icon || ""
-                                            opacity: modelData.active ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: !modelData.isQuickshell && !modelData.isSteamApp && status === Image.Ready
                                         }
 
@@ -1234,7 +1253,7 @@ BasePill {
                                         IconImage {
                                             anchors.fill: parent
                                             source: modelData.icon
-                                            opacity: modelData.active ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isQuickshell
                                             layer.enabled: true
                                             layer.effect: MultiEffect {
@@ -1248,7 +1267,7 @@ BasePill {
                                             id: colSteamIcon
                                             anchors.fill: parent
                                             source: modelData.icon
-                                            opacity: modelData.active ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isSteamApp && modelData.icon
                                         }
 
@@ -1257,7 +1276,7 @@ BasePill {
                                             size: root.appIconSize
                                             name: "sports_esports"
                                             color: appHighlightActive ? focusedBorderColor : Theme.widgetTextColor
-                                            opacity: modelData.active ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                            opacity: appOpacity
                                             visible: modelData.isSteamApp && !modelData.icon
                                         }
 
@@ -1275,24 +1294,16 @@ BasePill {
                                             id: colAppHover
                                         }
 
-                                        Rectangle {
+                                        CountBadge {
                                             visible: modelData.count > 1 && !isActive
-                                            width: root.appIconSize * 0.67
-                                            height: root.appIconSize * 0.67
-                                            radius: root.appIconSize * 0.33
-                                            color: "black"
-                                            border.color: "white"
-                                            border.width: Theme.outlineWidth
+                                            text: modelData.count
+                                            color: activeColor
+                                            textColor: activeInk
                                             anchors.right: parent.right
                                             anchors.bottom: parent.bottom
+                                            anchors.rightMargin: -Theme.spacingXXS
+                                            anchors.bottomMargin: -Theme.spacingXXS
                                             z: 2
-
-                                            StyledText {
-                                                anchors.centerIn: parent
-                                                text: modelData.count
-                                                font.pixelSize: root.appIconSize * 0.44
-                                                color: "white"
-                                            }
                                         }
                                     }
                                 }
