@@ -725,16 +725,18 @@ BasePill {
                 Timer {
                     id: dataUpdateTimer
                     interval: 50
-                    onTriggered: {
-                        if (isPlaceholder) {
-                            delegateRoot.loadedIcons = [];
-                            delegateRoot.loadedIsUrgent = false;
-                            return;
-                        }
+                    onTriggered: delegateRoot.loadData()
+                }
 
-                        delegateRoot.loadedIsUrgent = CompositorService.loadWorkspaceUrgent(delegateRoot.record);
-                        delegateRoot.loadedIcons = root.opt("showWorkspaceApps") ? root.getWorkspaceIcons(delegateRoot.record) : [];
+                function loadData() {
+                    if (isPlaceholder) {
+                        delegateRoot.loadedIcons = [];
+                        delegateRoot.loadedIsUrgent = false;
+                        return;
                     }
+
+                    delegateRoot.loadedIsUrgent = CompositorService.loadWorkspaceUrgent(delegateRoot.record);
+                    delegateRoot.loadedIcons = root.opt("showWorkspaceApps") ? root.getWorkspaceIcons(delegateRoot.record) : [];
                 }
 
                 function updateAllData() {
@@ -969,12 +971,20 @@ BasePill {
 
                                 Item {
                                     visible: loadedHasIcon && loadedIconData?.type === "text"
-                                    width: wsText.implicitWidth
+                                    // reserve the active weight so activating a workspace doesn't shift the bar
+                                    width: Math.max(wsText.implicitWidth, Math.ceil(wsTextMetrics.advanceWidth))
                                     height: root.appIconSize
+
+                                    StyledTextMetrics {
+                                        id: wsTextMetrics
+                                        text: wsText.text
+                                        font.pixelSize: root.labelSize
+                                        font.weight: Theme.fontWeightMedium
+                                    }
 
                                     StyledText {
                                         id: wsText
-                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.centerIn: parent
                                         text: loadedIconData?.value ?? ""
                                         color: contentInk
                                         font.pixelSize: root.labelSize
@@ -984,12 +994,19 @@ BasePill {
 
                                 Item {
                                     visible: ((root.opt("showWorkspaceIndex") || root.opt("showWorkspaceName")) && !loadedHasIcon) || (loadedHasIcon && root.opt("showWorkspaceName") && hasWorkspaceName)
-                                    width: wsIndexText.implicitWidth
+                                    width: Math.max(wsIndexText.implicitWidth, Math.ceil(wsIndexTextMetrics.advanceWidth))
                                     height: root.appIconSize
+
+                                    StyledTextMetrics {
+                                        id: wsIndexTextMetrics
+                                        text: wsIndexText.text
+                                        font.pixelSize: root.labelSize
+                                        font.weight: Theme.fontWeightMedium
+                                    }
 
                                     StyledText {
                                         id: wsIndexText
-                                        anchors.verticalCenter: parent.verticalCenter
+                                        anchors.centerIn: parent
                                         text: loadedHasIcon ? (record?.name ?? "") : root.getWorkspaceIndex(record, index)
                                         color: contentInk
                                         font.pixelSize: root.labelSize
@@ -1299,7 +1316,11 @@ BasePill {
                     }
                 }
                 readonly property var rootCurrentWorkspace: root.currentWorkspace
-                onRootCurrentWorkspaceChanged: updateAllData()
+                // isActive flips at once, so the icons that size the pill must follow in the same frame
+                onRootCurrentWorkspaceChanged: {
+                    dataUpdateTimer.stop();
+                    loadData();
+                }
                 readonly property bool iconIndexReady: IconThemeService.ready
                 onIconIndexReadyChanged: updateAllData()
                 Connections {
