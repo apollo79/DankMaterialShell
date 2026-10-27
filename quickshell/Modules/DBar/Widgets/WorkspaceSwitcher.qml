@@ -38,6 +38,7 @@ BasePill {
     readonly property real overviewTintAlpha: 0.18
     readonly property real dragOpacity: 0.8
     readonly property real hoverFadeAlpha: 0.7
+    readonly property real inactiveLabelAlpha: 0.85
     readonly property real cardWindowRatio: 0.45
     readonly property real labelSize: Math.min(Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText), Math.floor(widgetThickness * BarMetrics.indicatorLabelRatio))
 
@@ -518,7 +519,8 @@ BasePill {
                     return root.useUnfocusedAppearance ? unfocusedCustom : focusedCustom;
                 }
 
-                readonly property color unfocusedColor: colorFromMode(effectiveColorMode(root.opt("workspaceUnfocusedColorMode"), root.opt("workspaceUnfocusedMonitorUnfocusedColorMode")), Theme.surfaceTextAlpha, effectiveCustomColor(root.opt("workspaceUnfocusedCustomColor"), root.opt("workspaceUnfocusedMonitorUnfocusedCustomColor")), Theme.surfaceTextAlpha)
+                readonly property string unfocusedColorMode: effectiveColorMode(root.opt("workspaceUnfocusedColorMode"), root.opt("workspaceUnfocusedMonitorUnfocusedColorMode"))
+                readonly property color unfocusedColor: colorFromMode(unfocusedColorMode, Theme.surfaceTextAlpha, effectiveCustomColor(root.opt("workspaceUnfocusedCustomColor"), root.opt("workspaceUnfocusedMonitorUnfocusedCustomColor")), Theme.surfaceTextAlpha)
 
                 readonly property string activeColorMode: effectiveColorMode(root.opt("workspaceColorMode"), root.opt("workspaceUnfocusedMonitorColorMode"))
                 readonly property color activeColor: {
@@ -527,11 +529,11 @@ BasePill {
                     return colorFromMode(activeColorMode, Theme.primary, effectiveCustomColor(root.opt("workspaceFocusedCustomColor"), root.opt("workspaceUnfocusedMonitorFocusedCustomColor")), Theme.primary);
                 }
 
+                readonly property string occupiedColorMode: effectiveColorMode(root.opt("workspaceOccupiedColorMode"), root.opt("workspaceUnfocusedMonitorOccupiedColorMode"))
                 readonly property color occupiedColor: {
-                    const mode = effectiveColorMode(root.opt("workspaceOccupiedColorMode"), root.opt("workspaceUnfocusedMonitorOccupiedColorMode"));
-                    if (mode === "none")
+                    if (occupiedColorMode === "none")
                         return unfocusedColor;
-                    return colorFromMode(mode, unfocusedColor, effectiveCustomColor(root.opt("workspaceOccupiedCustomColor"), root.opt("workspaceUnfocusedMonitorOccupiedCustomColor")), Theme.secondary);
+                    return colorFromMode(occupiedColorMode, unfocusedColor, effectiveCustomColor(root.opt("workspaceOccupiedCustomColor"), root.opt("workspaceUnfocusedMonitorOccupiedCustomColor")), Theme.secondary);
                 }
 
                 readonly property string urgentColorMode: effectiveColorMode(root.opt("workspaceUrgentColorMode"), root.opt("workspaceUnfocusedMonitorUrgentColorMode"))
@@ -581,10 +583,28 @@ BasePill {
                     }
                 }
 
-                readonly property color filledInk: isActive ? inkFromMode(activeColorMode, activeColor, Theme.onPrimary) : inkFromMode(urgentColorMode, urgentColor, Theme.onError)
-                readonly property color contentInk: root.linesStyle ? (isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium) : ((isActive || isUrgent) ? filledInk : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium)
+                readonly property color filledInk: {
+                    if (isActive)
+                        return inkFromMode(activeColorMode, activeColor, Theme.onPrimary);
+                    if (isUrgent)
+                        return inkFromMode(urgentColorMode, urgentColor, Theme.onError);
+                    const idleInk = Theme.withAlpha(Theme.surfaceText, root.inactiveLabelAlpha);
+                    if (isOccupied && !isHovered && occupiedColorMode !== "none")
+                        return inkFromMode(occupiedColorMode, occupiedColor, idleInk);
+                    return inkFromMode(unfocusedColorMode, unfocusedColor, idleInk);
+                }
+                readonly property color contentInk: {
+                    // lines and inactive cards draw no fill, so their label sits on the bar
+                    if (root.linesStyle || (root.cardsStyle && !isActive))
+                        return isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium;
+                    if (isPlaceholder && !isActive && !isUrgent)
+                        return Theme.surfaceTextAlpha;
+                    return filledInk;
+                }
 
-                readonly property color requestedColor: isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextLight : isHovered ? Theme.withAlpha(unfocusedColor, root.hoverFadeAlpha) : isOccupied ? occupiedColor : unfocusedColor
+                // a translucent fill gains a state layer on hover, an opaque one fades
+                readonly property color hoverColor: Theme.withAlpha(unfocusedColor, unfocusedColor.a < 1 ? Math.min(1, unfocusedColor.a + Theme.stateLayerFocus) : root.hoverFadeAlpha)
+                readonly property color requestedColor: isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextLight : isHovered ? hoverColor : isOccupied ? occupiedColor : unfocusedColor
 
                 property bool colorAnimationReady: false
 
