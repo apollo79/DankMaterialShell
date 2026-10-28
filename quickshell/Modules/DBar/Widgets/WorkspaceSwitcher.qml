@@ -65,6 +65,8 @@ BasePill {
     readonly property real dragOpacity: 0.8
     readonly property real hoverFadeAlpha: 0.7
     readonly property real inactiveLabelAlpha: 0.85
+    readonly property real unfocusedAppAlpha: 0.7
+    readonly property real hoveredAppAlpha: 0.85
     readonly property real cardWindowRatio: 0.45
     readonly property real labelSize: Math.min(Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText), Math.floor(widgetThickness * BarMetrics.indicatorLabelRatio))
 
@@ -1054,7 +1056,7 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : rowAppHover.hovered ? 0.8 : 0.6
+                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : rowAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
 
                                         IconImage {
                                             id: rowAppIcon
@@ -1205,7 +1207,7 @@ BasePill {
                                         readonly property bool appHighlightActive: root.opt("workspaceActiveAppHighlightEnabled") && modelData.active
                                         readonly property color appBorderColor: appHighlightActive ? focusedBorderColor : Theme.primarySelected
                                         readonly property color appGlyphColor: appHighlightActive ? focusedBorderColor : Theme.primary
-                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : colAppHover.hovered ? 0.8 : 0.6
+                                        readonly property real appOpacity: modelData.active || root.opt("workspaceUnfocusedAppsFullOpacity") ? 1.0 : colAppHover.hovered ? root.hoveredAppAlpha : root.unfocusedAppAlpha
 
                                         IconImage {
                                             id: colAppIcon
